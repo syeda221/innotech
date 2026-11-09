@@ -274,7 +274,7 @@ class ReportingController extends Controller
             }
             
             $results[] = [
-                'name' => $vName . ' (' . $vSize . ' | ' . $vColor . ')',
+                'name' => $vName . (!empty(array_filter([$vSize, $vColor], fn($val) => !empty($val) && trim($val) !== '-' && trim($val) !== '')) ? ' (' . implode(' | ', array_filter([$vSize, $vColor], fn($val) => !empty($val) && trim($val) !== '-' && trim($val) !== '')) . ')' : ''),
                 'code' => $product->item_code,
                 'stock' => $balance,
                 "alert" => isset($v["alert"]) ? (float)$v["alert"] : null,
@@ -870,7 +870,7 @@ class ReportingController extends Controller
                     $rows[] = [
                         'id'              => $product->id,
                         'item_code'       => $product->item_code,
-                        'item_name'       => $vName . ' (' . $vSize . ' | ' . $vColor . ')',
+                        'item_name'       => $vName . (!empty(array_filter([$vSize, $vColor], fn($val) => !empty($val) && trim($val) !== '-' && trim($val) !== '')) ? ' (' . implode(' | ', array_filter([$vSize, $vColor], fn($val) => !empty($val) && trim($val) !== '-' && trim($val) !== '')) . ')' : ''),
                         'category_name'   => $product->category_relation->name ?? 'Standard',
                         'unit_name'       => $vUnitName,
                         'size_mode'       => $sizeMode,
@@ -1055,7 +1055,7 @@ class ReportingController extends Controller
                         $vSize = $v['size'] ?? '-';
                         $vColor = $v['color'] ?? '-';
                         $vKey = trim($vName) . '|' . trim($vSize) . '|' . trim($vColor);
-                        $vText = $vName . ' (' . $vSize . ' | ' . $vColor . ')';
+                        $vText = $vName . (!empty(array_filter([$vSize, $vColor], fn($val) => !empty($val) && trim($val) !== '-' && trim($val) !== '')) ? ' (' . implode(' | ', array_filter([$vSize, $vColor], fn($val) => !empty($val) && trim($val) !== '-' && trim($val) !== '')) . ')' : '');
                         if (!empty($v['barcode'])) {
                             $vText .= ' - [' . $v['barcode'] . ']';
                         }
@@ -2283,12 +2283,12 @@ class ReportingController extends Controller
                         if (!empty($itemVariant)) {
                             $sizeVal = $itemVariant['size'] ?? ($itemVariant['size_val'] ?? '');
                             $colorVal = $itemVariant['color'] ?? ($itemVariant['color_val'] ?? '');
-                            $vParts = array_filter([$sizeVal, $colorVal]);
+                            $vParts = array_filter([$sizeVal, $colorVal], fn($v) => !empty($v) && trim($v) !== '-');
                             if (count($vParts) > 0) {
                                 $vStr = ' (' . implode(' | ', $vParts) . ')';
                             }
                         } else {
-                            $vStr = ' (' . $item->color . ')';
+                            $vStr = (!empty($item->color) && trim($item->color) !== '-') ? ' (' . $item->color . ')' : '';
                         }
                     }
                     return $item->product->item_name . $vStr;
@@ -2395,7 +2395,7 @@ class ReportingController extends Controller
                                      if (!empty($itemVariant)) {
                                          $sizeVal = $itemVariant['size'] ?? ($itemVariant['size_val'] ?? '');
                                          $colorVal = $itemVariant['color'] ?? ($itemVariant['color_val'] ?? '');
-                                         $vParts = array_filter([$sizeVal, $colorVal]);
+                                         $vParts = array_filter([$sizeVal, $colorVal], fn($v) => !empty($v) && trim($v) !== '-');
                                          if (count($vParts) > 0) {
                                              $vStr = ' (' . implode(' | ', $vParts) . ')';
                                          }

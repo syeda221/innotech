@@ -198,7 +198,7 @@ class StockAdjustmentController extends Controller
                                 'color'         => $vColor,
                                 'initial_stock' => $vInitial,
                                 'current_stock' => $vCurrentStock,
-                                'display_label' => "{$vName} (Size: {$vSize}, Color: {$vColor})"
+                                'display_label' => $vName . (!empty(array_filter([($vSize !== '-' && !empty($vSize) ? 'Size: ' . $vSize : null), ($vColor !== '-' && !empty($vColor) ? 'Color: ' . $vColor : null)])) ? ' (' . implode(', ', array_filter([($vSize !== '-' && !empty($vSize) ? 'Size: ' . $vSize : null), ($vColor !== '-' && !empty($vColor) ? 'Color: ' . $vColor : null)])) . ')' : '')
                             ];
                         }
                     }

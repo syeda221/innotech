@@ -47,7 +47,20 @@ class SettingsController extends Controller
         if ($request->has('settings') && is_array($request->settings)) {
             foreach ($request->settings as $key => $value) {
                 Setting::set($key, $value);
+
+                // Synchronize with SaleFieldConfiguration if applicable
+                if (in_array($key, ['summary_customer_balance', 'print_tax_breakdown', 'inv_show_disc_column'])) {
+                    $boolVal = (bool) $value;
+                    $fieldKey = $key === 'inv_show_disc_column' ? 'col_discount' : $key;
+                    $fieldConfig = \App\Models\SaleFieldConfiguration::where('field_key', $fieldKey)->first();
+                    if ($fieldConfig) {
+                        $fieldConfig->is_enabled = $boolVal;
+                        $fieldConfig->visible_in_print = $boolVal;
+                        $fieldConfig->save();
+                    }
+                }
             }
+            \App\Models\SaleFieldConfiguration::clearCache();
         }
 
         // 2. Handle Company Logo Upload & Removal

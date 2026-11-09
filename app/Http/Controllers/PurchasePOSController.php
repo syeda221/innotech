@@ -278,7 +278,7 @@ class PurchasePOSController extends Controller
                             if ($vColorName && $vColorName !== '-') $vParts[] = $vColorName;
                             if (!empty($vParts)) $itemName .= ' ' . implode(' | ', $vParts);
                         } else {
-                            $itemName .= ' (' . $item->color . ')';
+                            if (!empty($item->color) && trim($item->color) !== '-') { $itemName .= ' (' . $item->color . ')'; }
                         }
                     }
 

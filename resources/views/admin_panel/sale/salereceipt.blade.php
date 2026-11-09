@@ -539,7 +539,8 @@
         </div>
 
         @php
-            $showReceiptCustomerBalance = \App\Models\SaleFieldConfiguration::isVisibleInPrint('summary_customer_balance', true) && 
+            $showReceiptCustomerBalance = (\App\Models\Setting::get('summary_customer_balance', '1') == '1') &&
+                \App\Models\SaleFieldConfiguration::isVisibleInPrint('summary_customer_balance', true) && 
                 \App\Models\SaleFieldConfiguration::isEnabled('summary_customer_balance', true);
         @endphp
         <!-- Ledger -->

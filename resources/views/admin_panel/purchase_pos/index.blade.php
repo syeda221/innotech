@@ -1598,10 +1598,10 @@
             let variantData = Object.keys(variantObj).length > 0 ? JSON.stringify(variantObj) : '';
             
             let displayName = product_name;
-            if (size || color) {
-                let parts = [];
-                if (size) parts.push(size);
-                if (color) parts.push(color);
+            let parts = [];
+            if (size && size.trim() !== '-') parts.push(size);
+            if (color && color.trim() !== '-') parts.push(color);
+            if (parts.length > 0) {
                 displayName += ` (${parts.join(' | ')})`;
             }
 
@@ -2254,7 +2254,8 @@
                     }
 
                     res.items.forEach(item => {
-                        let desc = `${item.product_name} ${item.size !== '-' ? '(' + item.size + ' | ' + item.color + ')' : ''}`;
+                        let itemParts = [item.size, item.color].filter(v => v && v.trim() !== '-');
+                        let desc = item.product_name + (itemParts.length > 0 ? ` (${itemParts.join(' | ')})` : '');
                         $tbody.append(`
                             <tr data-sale-item-id="${item.id}" data-is-manual="${item.is_manual}" data-product-id="${item.product_id || ''}" data-name="${item.product_name}" data-variant-data="${item.variant_data}" data-net-unit-price="${item.net_unit_price}" data-max-returnable="${item.max_returnable}" data-original-sale-id="${res.sale_id}">
                                 <td class="ps-3 fw-bold" style="font-size: 13px;">${desc}</td>

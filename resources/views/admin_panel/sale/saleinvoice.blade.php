@@ -15,16 +15,19 @@
 
     <style>
         :root {
-            --primary-navy: #0f172a;
+            --primary-navy: #1e3a5f;
+            --primary-dark: #0f172a;
             --slate-800: #1e293b;
             --slate-700: #334155;
             --slate-600: #475569;
             --slate-500: #64748b;
+            --slate-400: #94a3b8;
             --slate-300: #cbd5e1;
             --slate-200: #e2e8f0;
             --slate-100: #f1f5f9;
             --slate-50: #f8fafc;
             --brand-accent: #0284c7;
+            --brand-accent-light: #f0f9ff;
         }
 
         * {
@@ -121,10 +124,10 @@
         /* A4 Invoice Screen Container */
         .invoice-container {
             max-width: 210mm;
-            min-height: 297mm;
-            margin: 20px auto 40px auto;
+            min-height: auto;
+            margin: 15px auto 30px auto;
             background: #ffffff;
-            padding: 32px 38px;
+            padding: 22px 26px;
             box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
             border-radius: 6px;
             position: relative;
@@ -134,67 +137,67 @@
         /* Company Brand Header */
         .company-header-wrapper {
             text-align: center;
-            padding-bottom: 12px;
-            margin-bottom: 10px;
-            border-bottom: 2px solid var(--primary-navy);
+            padding-bottom: 8px;
+            margin-bottom: 6px;
+            border-bottom: 1.5px solid var(--primary-navy);
         }
 
         .company-header-wrapper .company-logo {
-            max-height: 85px;
-            max-width: 260px;
+            max-height: 52px;
+            max-width: 220px;
             width: auto;
             height: auto;
             object-fit: contain;
-            margin-bottom: 8px;
-        }
-
-        .company-header-wrapper .company-brand {
-            font-size: 24px;
-            font-weight: 900;
-            color: var(--primary-navy);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            line-height: 1.15;
             margin-bottom: 4px;
         }
 
+        .company-header-wrapper .company-brand {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary-navy);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            line-height: 1.15;
+            margin-bottom: 2px;
+        }
+
         .company-header-wrapper .company-meta {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--slate-600);
             font-weight: 500;
             margin: 0 auto;
-            max-width: 620px;
-            line-height: 1.45;
+            max-width: 650px;
+            line-height: 1.35;
         }
 
-        /* Invoice Badge - Dark Block */
+        /* Invoice Badge - Executive Pill */
         .invoice-title-wrapper {
             text-align: center;
-            margin: 12px 0 16px 0;
+            margin: 6px 0 8px 0;
         }
 
         .invoice-badge-title {
             display: inline-block;
-            font-size: 13.5px;
+            font-size: 12px;
             font-weight: 800;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            color: #ffffff;
-            padding: 5px 30px;
-            background: var(--primary-navy);
+            color: var(--primary-navy);
+            padding: 3px 24px;
+            background: var(--slate-50);
             border: 1.5px solid var(--primary-navy);
             border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(15, 23, 42, 0.15);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
         }
 
-        /* Two-Column Structured Meta Cards - Dark Block Headers */
+        /* Two-Column Structured Meta Cards - Executive Framing */
         .header-meta-grid {
             display: table;
             width: 100%;
             table-layout: fixed;
             border-collapse: separate;
-            border-spacing: 12px 0;
-            margin-bottom: 14px;
+            border-spacing: 10px 0;
+            margin-bottom: 8px;
         }
 
         .header-meta-card {
@@ -202,33 +205,34 @@
             width: 50%;
             vertical-align: top;
             background: #ffffff;
-            border: 1.5px solid var(--primary-navy);
+            border: 1px solid var(--slate-200);
+            border-top: 2.5px solid var(--primary-navy);
             border-radius: 5px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
         }
 
         .header-meta-card .card-head {
-            background: var(--primary-navy);
-            color: #ffffff;
-            font-size: 11px;
+            background: var(--slate-50);
+            color: var(--primary-navy);
+            font-size: 10px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 7px 14px;
-            border-bottom: 1.5px solid var(--primary-navy);
+            letter-spacing: 0.8px;
+            padding: 4px 10px;
+            border-bottom: 1px solid var(--slate-200);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .header-meta-card .card-head i {
-            color: #38bdf8;
-            font-size: 12px;
+            color: var(--brand-accent);
+            font-size: 10px;
         }
 
         .header-meta-card .card-body-meta {
-            padding: 9px 14px;
+            padding: 6px 10px;
             background: #ffffff;
         }
 
@@ -239,87 +243,96 @@
         }
 
         .meta-table td {
-            padding: 3px 0;
+            padding: 2px 0;
             vertical-align: top;
-            font-size: 10.5px;
-            line-height: 1.35;
+            font-size: 10px;
+            line-height: 1.3;
         }
 
         .meta-table .lbl {
-            width: 135px;
-            font-weight: 700;
-            color: var(--slate-600);
+            width: 125px;
+            font-weight: 600;
+            color: var(--slate-500);
             text-transform: uppercase;
-            font-size: 10px;
-            letter-spacing: 0.2px;
+            font-size: 9.5px;
+            letter-spacing: 0.3px;
         }
 
         .meta-table .col {
             width: 12px;
-            font-weight: 700;
-            color: var(--slate-500);
+            font-weight: 600;
+            color: var(--slate-400);
             text-align: center;
         }
 
         .meta-table .val {
-            font-weight: 700;
-            color: var(--primary-navy);
+            font-weight: 600;
+            color: var(--slate-800);
             text-transform: uppercase;
             word-break: break-word;
         }
 
         .meta-table .val.highlight {
             font-weight: 800;
-            color: var(--primary-navy);
+            color: var(--primary-dark);
+            font-size: 10.5px;
         }
 
-        /* Main Invoice Items Table - Dark Block Header & Footer */
+        /* Main Invoice Items Table - Executive Accounting Table */
         .invoice-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 10.5px;
+            margin-top: 6px;
+            font-size: 10px;
         }
 
         .invoice-table th {
-            background-color: var(--primary-navy) !important;
-            color: #ffffff !important;
-            font-weight: 800;
-            font-size: 10px;
+            background-color: var(--slate-50) !important;
+            color: var(--slate-700) !important;
+            font-weight: 700;
+            font-size: 9.5px;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
-            padding: 8px 6px;
-            border: 1px solid #1e293b;
+            letter-spacing: 0.5px;
+            padding: 5px 4px;
+            border: 1px solid var(--slate-200);
+            border-top: 1.5px solid var(--slate-300);
+            border-bottom: 2px solid var(--primary-navy);
             text-align: center;
             vertical-align: middle;
-            line-height: 1.3;
+            line-height: 1.25;
         }
 
         .invoice-table td {
-            border: 1px solid var(--slate-300);
-            padding: 6px 6px;
+            border: 1px solid var(--slate-200);
+            padding: 4.5px 4px;
             vertical-align: middle;
-            font-size: 10.5px;
-            color: var(--primary-navy);
-            line-height: 1.3;
+            font-size: 10px;
+            color: var(--slate-800);
+            line-height: 1.25;
         }
 
         .invoice-table tbody tr:nth-of-type(even) {
-            background-color: var(--slate-50);
+            background-color: #fafbfc;
+        }
+
+        .invoice-table tbody tr:hover {
+            background-color: #f1f5f9;
         }
 
         .invoice-table tfoot tr {
-            background-color: var(--primary-navy) !important;
-            color: #ffffff !important;
+            background-color: var(--slate-50) !important;
+            color: var(--primary-navy) !important;
         }
 
         .invoice-table tfoot td {
-            background-color: var(--primary-navy) !important;
-            color: #ffffff !important;
-            border: 1px solid #1e293b;
-            padding: 7px 6px;
+            background-color: var(--slate-50) !important;
+            color: var(--primary-navy) !important;
+            border: 1px solid var(--slate-200);
+            border-top: 2px solid var(--primary-navy);
+            border-bottom: 2px solid var(--primary-navy);
+            padding: 5px 4px;
             font-weight: 800;
-            font-size: 10.5px;
+            font-size: 10px;
         }
 
         /* Number Column Alignment & Font */
@@ -339,56 +352,58 @@
         /* Product Description Details */
         .item-main-title {
             font-weight: 700;
-            color: var(--primary-navy);
-            font-size: 11px;
-            line-height: 1.3;
+            color: var(--primary-dark);
+            font-size: 10.5px;
+            line-height: 1.25;
         }
 
         .item-sub-sn {
-            font-size: 10px;
-            font-weight: 800;
-            color: #0369a1;
-            margin-top: 2px;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--brand-accent);
+            margin-top: 1px;
         }
 
         .item-sub-desc {
-            font-size: 9.5px;
-            color: var(--slate-700);
-            margin-top: 2px;
-            line-height: 1.35;
+            font-size: 8.5px;
+            color: var(--slate-500);
+            margin-top: 1px;
+            line-height: 1.2;
         }
 
-        /* Exchange Returns Table - Dark Crimson Block */
+        /* Exchange Returns Table - Soft Rose Header */
         .returns-wrapper {
-            margin-top: 14px;
+            margin-top: 8px;
         }
 
         .returns-header {
-            font-size: 10.5px;
+            font-size: 9.5px;
             font-weight: 800;
-            color: #ffffff;
-            background: #881337;
+            color: #9f1239;
+            background: #ffe4e6;
+            border: 1px solid #fecdd3;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 4px 12px;
+            padding: 3px 8px;
             border-radius: 4px;
         }
 
         .returns-wrapper .invoice-table th {
-            background-color: #881337 !important;
-            color: #ffffff !important;
-            border: 1px solid #4c0519;
+            background-color: #fff1f2 !important;
+            color: #9f1239 !important;
+            border: 1px solid #fecdd3;
+            border-bottom: 2px solid #e11d48;
         }
 
         /* Footer & Summary Section */
         .invoice-bottom-grid {
             display: flex;
-            gap: 16px;
-            margin-top: 14px;
+            gap: 12px;
+            margin-top: 8px;
             align-items: flex-start;
         }
 
@@ -400,26 +415,27 @@
             flex: 1 1 42%;
         }
 
-        /* Amount in Words Callout - Dark Block Border */
+        /* Amount in Words Callout - Executive Accent */
         .words-card {
-            background: #ffffff;
-            border: 1.5px solid var(--primary-navy);
-            border-radius: 5px;
-            padding: 9px 14px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-left: 3px solid var(--brand-accent);
+            border-radius: 4px;
+            padding: 5px 10px;
+            margin-bottom: 6px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
         }
 
         .words-card .words-label {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: var(--primary-navy);
+            letter-spacing: 0.5px;
+            color: var(--brand-accent);
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin-bottom: 2px;
+            gap: 4px;
+            margin-bottom: 1px;
         }
 
         .words-card .words-label i {
@@ -427,53 +443,100 @@
         }
 
         .words-card .words-value {
-            font-size: 11.5px;
+            font-size: 10.5px;
             font-weight: 700;
-            color: var(--primary-navy);
+            color: var(--primary-dark);
             text-transform: capitalize;
-            line-height: 1.35;
+            line-height: 1.3;
         }
 
-        /* Terms & Conditions Card - Dark Top Accent */
+        /* Terms & Conditions Card - Executive Card */
         .terms-card {
             background: #ffffff;
-            border: 1.5px solid var(--slate-300);
-            border-top: 3px solid var(--primary-navy);
-            border-radius: 5px;
-            padding: 9px 14px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+            border: 1px solid var(--slate-200);
+            border-top: 2.5px solid var(--primary-navy);
+            border-radius: 4px;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
         }
 
         .terms-card .terms-title {
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--primary-navy);
-            margin-bottom: 4px;
+            margin-bottom: 3px;
             display: flex;
             align-items: center;
             gap: 5px;
         }
 
         .terms-card .terms-content {
-            font-size: 9.5px;
+            font-size: 9px;
             color: var(--slate-700);
-            line-height: 1.4;
+            line-height: 1.35;
+        }
+
+        .terms-card .term-block {
+            margin-bottom: 4px;
+        }
+
+        .terms-card .term-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .terms-card .term-heading-label {
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--primary-navy);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1px;
+        }
+
+        .terms-card .term-points-wrapper {
+            padding-left: 2px;
+        }
+
+        .terms-card .term-point-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.5px;
+            font-size: 8.5px;
+            color: var(--slate-600);
+            line-height: 1.3;
+        }
+
+        .terms-card .term-point-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .terms-card .term-bullet {
+            color: var(--brand-accent);
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-right: 5px;
+            flex-shrink: 0;
+        }
+
+        .terms-card .term-point-text {
+            flex: 1;
         }
 
         /* Signature Area */
         .signature-section {
-            margin-top: 36px;
+            margin-top: 14px;
         }
 
         .signature-line-box {
-            width: 200px;
-            border-top: 2px solid var(--primary-navy);
+            width: 170px;
+            border-top: 1.5px solid var(--primary-navy);
             text-align: center;
-            padding-top: 6px;
-            font-size: 10.5px;
+            padding-top: 4px;
+            font-size: 9.5px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.8px;
@@ -481,40 +544,41 @@
         }
 
         .printed-timestamp {
-            font-size: 9.5px;
+            font-size: 8.5px;
             color: var(--slate-500);
-            margin-top: 4px;
+            margin-top: 2px;
             display: flex;
             align-items: center;
             gap: 4px;
         }
 
-        /* Totals Summary Card - Dark Block Frame */
+        /* Totals Summary Card - Executive Frame */
         .totals-card {
-            border: 1.5px solid var(--primary-navy);
-            border-radius: 6px;
+            border: 1px solid var(--slate-200);
+            border-top: 2.5px solid var(--primary-navy);
+            border-radius: 5px;
             overflow: hidden;
             background: #ffffff;
-            box-shadow: 0 2px 5px rgba(15, 23, 42, 0.04);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
         }
 
         .totals-card .card-head {
-            background: var(--primary-navy);
-            padding: 7px 14px;
-            font-size: 11px;
+            background: var(--slate-50);
+            padding: 4px 10px;
+            font-size: 10px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #ffffff;
-            border-bottom: 1.5px solid var(--primary-navy);
+            letter-spacing: 0.8px;
+            color: var(--primary-navy);
+            border-bottom: 1px solid var(--slate-200);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .totals-card .card-head i {
-            color: #38bdf8;
-            font-size: 12px;
+            color: var(--brand-accent);
+            font-size: 10px;
         }
 
         .totals-table {
@@ -523,10 +587,10 @@
         }
 
         .totals-table td {
-            padding: 5.5px 14px;
-            font-size: 11px;
-            border-bottom: 1px solid var(--slate-200);
-            color: var(--slate-700);
+            padding: 3.5px 10px;
+            font-size: 10px;
+            border-bottom: 1px solid var(--slate-100);
+            color: var(--slate-600);
         }
 
         .totals-table td.lbl {
@@ -536,23 +600,23 @@
         .totals-table td.val {
             text-align: right;
             font-weight: 700;
-            color: var(--primary-navy);
+            color: var(--primary-dark);
             font-variant-numeric: tabular-nums;
         }
 
         .totals-table tr.total-row td {
-            background: var(--primary-navy);
-            color: #ffffff !important;
+            background: var(--slate-50);
+            color: var(--primary-navy) !important;
             font-weight: 900;
-            font-size: 13.5px;
-            padding: 9px 14px;
-            border-bottom: none;
-            border-top: 1.5px solid var(--primary-navy);
+            font-size: 11.5px;
+            padding: 5px 10px;
+            border-top: 2px solid var(--primary-navy);
+            border-bottom: 2px solid var(--primary-navy);
         }
 
         .totals-table tr.total-row td.val {
-            color: #ffffff !important;
-            font-size: 14.5px;
+            color: var(--primary-navy) !important;
+            font-size: 13px;
         }
 
         /* Thermal Receipt (Hidden on Screen) */
@@ -571,11 +635,12 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 8mm 10mm;
+                margin: 0; /* Hides browser default URL, date, page title & page number */
             }
 
-            body {
+            html, body {
                 width: 100% !important;
+                height: auto !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
@@ -600,12 +665,143 @@
 
             .invoice-container {
                 margin: 0 !important;
-                padding: 0 !important;
+                padding: 6mm 8mm !important;
+                min-height: auto !important;
+                height: auto !important;
                 box-shadow: none !important;
                 max-width: 100% !important;
                 width: 100% !important;
                 border-radius: 0 !important;
                 border: none !important;
+            }
+
+            /* Clean Print Headers & Footers - Zero Heavy Black Ink Blocks */
+            .invoice-badge-title {
+                background: #f8fafc !important;
+                color: #1e3a5f !important;
+                border: 1.5px solid #1e3a5f !important;
+                padding: 2px 18px !important;
+                font-size: 11.5px !important;
+            }
+
+            .header-meta-card {
+                border: 1px solid #cbd5e1 !important;
+                border-top: 2.5px solid #1e3a5f !important;
+            }
+
+            .header-meta-card .card-head {
+                background-color: #f8fafc !important;
+                color: #1e3a5f !important;
+                border-bottom: 1px solid #cbd5e1 !important;
+                padding: 3px 8px !important;
+                font-size: 9.5px !important;
+            }
+
+            .header-meta-card .card-body-meta {
+                padding: 4px 8px !important;
+            }
+
+            .meta-table td {
+                padding: 1px 0 !important;
+                font-size: 9.5px !important;
+            }
+
+            .invoice-table {
+                margin-top: 5px !important;
+                font-size: 9.5px !important;
+            }
+
+            .invoice-table th {
+                background-color: #f8fafc !important;
+                color: #334155 !important;
+                border: 1px solid #cbd5e1 !important;
+                border-top: 1.5px solid #cbd5e1 !important;
+                border-bottom: 2px solid #1e3a5f !important;
+                padding: 4px 3px !important;
+                font-size: 9px !important;
+            }
+
+            .invoice-table td {
+                border: 1px solid #e2e8f0 !important;
+                color: #1e293b !important;
+                padding: 3.5px 3px !important;
+                font-size: 9.5px !important;
+            }
+
+            .invoice-table tbody tr:nth-of-type(even) {
+                background-color: #fafbfc !important;
+            }
+
+            .invoice-table tfoot tr,
+            .invoice-table tfoot td {
+                background-color: #f8fafc !important;
+                color: #1e3a5f !important;
+                border: 1px solid #cbd5e1 !important;
+                border-top: 2px solid #1e3a5f !important;
+                border-bottom: 2px solid #1e3a5f !important;
+                padding: 4px 3px !important;
+                font-size: 9.5px !important;
+            }
+
+            .totals-card {
+                border: 1px solid #cbd5e1 !important;
+                border-top: 2.5px solid #1e3a5f !important;
+            }
+
+            .totals-card .card-head {
+                background-color: #f8fafc !important;
+                color: #1e3a5f !important;
+                border-bottom: 1px solid #cbd5e1 !important;
+                padding: 3px 8px !important;
+                font-size: 9.5px !important;
+            }
+
+            .totals-table td {
+                padding: 2.5px 8px !important;
+                font-size: 9.5px !important;
+            }
+
+            .totals-table tr.total-row td {
+                background-color: #f8fafc !important;
+                color: #1e3a5f !important;
+                border-top: 2px solid #1e3a5f !important;
+                border-bottom: 2px solid #1e3a5f !important;
+                padding: 4px 8px !important;
+                font-size: 11px !important;
+            }
+
+            .totals-table tr.total-row td.val {
+                color: #1e3a5f !important;
+                font-size: 12px !important;
+            }
+
+            .words-card {
+                border: 1px solid #cbd5e1 !important;
+                border-left: 3px solid #0284c7 !important;
+                background-color: #f8fafc !important;
+                padding: 4px 8px !important;
+                margin-bottom: 4px !important;
+            }
+
+            .terms-card {
+                border: 1px solid #cbd5e1 !important;
+                border-top: 2.5px solid #1e3a5f !important;
+                padding: 4px 8px !important;
+                margin-bottom: 4px !important;
+            }
+
+            .signature-section {
+                margin-top: 10px !important;
+            }
+
+            /* Professional Page Break Rules */
+            .header-meta-card,
+            .totals-card,
+            .words-card,
+            .terms-card,
+            .signature-section {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
 
             /* Letterhead Mode */
@@ -798,10 +994,29 @@
 <body>
 
 @php
-    $showTaxColumns = \App\Models\SaleFieldConfiguration::isVisibleInPrint('print_tax_breakdown', true) && 
+    $showTaxColumns = (\App\Models\Setting::get('print_tax_breakdown', '1') == '1') && 
+        \App\Models\SaleFieldConfiguration::isVisibleInPrint('print_tax_breakdown', true) && 
         (\App\Models\SaleFieldConfiguration::isEnabled('sales_tax', true) || (float)($sale->total_sales_tax ?? 0) > 0);
-    $showCustomerBalance = \App\Models\SaleFieldConfiguration::isVisibleInPrint('summary_customer_balance', true) &&
+    $showCustomerBalance = (\App\Models\Setting::get('summary_customer_balance', '1') == '1') &&
+        \App\Models\SaleFieldConfiguration::isVisibleInPrint('summary_customer_balance', true) &&
         \App\Models\SaleFieldConfiguration::isEnabled('summary_customer_balance', true);
+
+    // Field-by-field display toggles
+    $showInvNo       = \App\Models\Setting::get('inv_show_invoice_no', '1') == '1';
+    $showInvDate     = \App\Models\Setting::get('inv_show_invoice_date', '1') == '1';
+    $showSalesRef    = \App\Models\Setting::get('inv_show_sales_ref', '1') == '1';
+    $showPoDetails   = \App\Models\Setting::get('inv_show_po_details', '1') == '1';
+    $showCompTax     = \App\Models\Setting::get('inv_show_comp_tax', '1') == '1';
+    $showCompPhone   = \App\Models\Setting::get('inv_show_comp_contact', '1') == '1';
+
+    $showCustAddress = \App\Models\Setting::get('inv_show_cust_address', '1') == '1';
+    $showCustLicense = \App\Models\Setting::get('inv_show_cust_license', '1') == '1';
+    $showCustContact = \App\Models\Setting::get('inv_show_cust_contact', '1') == '1';
+    $showCustTax     = \App\Models\Setting::get('inv_show_cust_tax', '1') == '1';
+
+    $showBatchCol    = \App\Models\Setting::get('inv_show_batch_column', '1') == '1';
+    $showDiscCol     = \App\Models\Setting::get('inv_show_disc_column', '1') == '1';
+    $showAmountWords = \App\Models\Setting::get('inv_show_amount_in_words', '1') == '1';
 @endphp
 
     <!-- Print / Action Buttons -->
@@ -912,6 +1127,7 @@
                 $isCnicEnabled = $cnicDef ? ($cnicDef->is_enabled && $cnicDef->visible_in_view && $cnicDef->canView()) : true;
 
                 $relCust = $sale->customer_relation;
+                $custLicense = $relCust ? ($relCust->getCustomValue('drug_license_no') ?? $relCust->getCustomValue('license_no') ?? $relCust->license_no ?? $relCust->drug_license_no ?? null) : null;
                 $custNtn = ($isNtnEnabled && $relCust) ? ($relCust->getCustomValue('ntn_number') ?? $relCust->ntn_number ?? null) : null;
                 $custStrn = ($isStrnEnabled && $relCust) ? ($relCust->getCustomValue('strn_number') ?? $relCust->strn_number ?? null) : null;
                 $custCnic = ($isCnicEnabled && $relCust) ? ($relCust->getCustomValue('cnic') ?? $relCust->cnic ?? null) : null;
@@ -939,7 +1155,7 @@
                                 <td class="val highlight">{{ $sale->walkin_name ?? ($relCust->customer_name ?? 'WALKING CUSTOMER') }}</td>
                             </tr>
 
-                            @if(!empty($relCust->address))
+                            @if($showCustAddress && !empty($relCust->address))
                             <tr>
                                 <td class="lbl">Address</td>
                                 <td class="col">:</td>
@@ -947,7 +1163,15 @@
                             </tr>
                             @endif
 
-                            @if($sale->po_no)
+                            @if($showCustLicense && !empty($custLicense))
+                            <tr>
+                                <td class="lbl">Drug License No</td>
+                                <td class="col">:</td>
+                                <td class="val">{{ $custLicense }}</td>
+                            </tr>
+                            @endif
+
+                            @if($showPoDetails && $sale->po_no)
                             <tr>
                                 <td class="lbl">Purchase Order No</td>
                                 <td class="col">:</td>
@@ -955,7 +1179,7 @@
                             </tr>
                             @endif
 
-                            @if($sale->po_date)
+                            @if($showPoDetails && $sale->po_date)
                             <tr>
                                 <td class="lbl">Purchase Order Date</td>
                                 <td class="col">:</td>
@@ -963,29 +1187,31 @@
                             </tr>
                             @endif
 
-                            @if(!empty($custNtn) && $isNtnEnabled)
-                            <tr>
-                                <td class="lbl">NTN Number</td>
-                                <td class="col">:</td>
-                                <td class="val">{{ $custNtn }}</td>
-                            </tr>
+                            @if($showCustTax)
+                                @if(!empty($custNtn) && $isNtnEnabled)
+                                <tr>
+                                    <td class="lbl">NTN Number</td>
+                                    <td class="col">:</td>
+                                    <td class="val">{{ $custNtn }}</td>
+                                </tr>
+                                @endif
+
+                                @if(!empty($custStrn) && $isStrnEnabled)
+                                <tr>
+                                    <td class="lbl">STRN Number</td>
+                                    <td class="col">:</td>
+                                    <td class="val">{{ $custStrn }}</td>
+                                </tr>
+                                @elseif(!empty($custCnic) && $isCnicEnabled)
+                                <tr>
+                                    <td class="lbl">CNIC Number</td>
+                                    <td class="col">:</td>
+                                    <td class="val">{{ $custCnic }}</td>
+                                </tr>
+                                @endif
                             @endif
 
-                            @if(!empty($custStrn) && $isStrnEnabled)
-                            <tr>
-                                <td class="lbl">STRN Number</td>
-                                <td class="col">:</td>
-                                <td class="val">{{ $custStrn }}</td>
-                            </tr>
-                            @elseif(!empty($custCnic) && $isCnicEnabled)
-                            <tr>
-                                <td class="lbl">CNIC Number</td>
-                                <td class="col">:</td>
-                                <td class="val">{{ $custCnic }}</td>
-                            </tr>
-                            @endif
-
-                            @if(!empty($custMobile))
+                            @if($showCustContact && !empty($custMobile))
                             <tr>
                                 <td class="lbl">Contact Details</td>
                                 <td class="col">:</td>
@@ -1009,35 +1235,41 @@
                     </div>
                     <div class="card-body-meta">
                         <table class="meta-table">
+                            @if($showInvNo)
                             <tr>
                                 <td class="lbl">{{ ($sale->sale_status === 'quotation' || ($isQuotation ?? false)) ? 'Quotation Number' : 'Invoice Number' }}</td>
                                 <td class="col">:</td>
                                 <td class="val highlight">{{ $sale->invoice_no }}</td>
                             </tr>
+                            @endif
 
+                            @if($showInvDate)
                             <tr>
                                 <td class="lbl">{{ ($sale->sale_status === 'quotation' || ($isQuotation ?? false)) ? 'Quotation Date' : 'Invoice Date' }}</td>
                                 <td class="col">:</td>
                                 <td class="val">{{ $sale->created_at ? $sale->created_at->format('d-F-Y') : date('d-F-Y') }}</td>
                             </tr>
-
-                            @if(!empty($compNtn) && $isNtnEnabled)
-                            <tr>
-                                <td class="lbl">NTN Number</td>
-                                <td class="col">:</td>
-                                <td class="val">{{ $compNtn }}</td>
-                            </tr>
                             @endif
 
-                            @if(!empty($compStrn) && $isStrnEnabled)
-                            <tr>
-                                <td class="lbl">STRN Number</td>
-                                <td class="col">:</td>
-                                <td class="val">{{ $compStrn }}</td>
-                            </tr>
+                            @if($showCompTax)
+                                @if(!empty($compNtn) && $isNtnEnabled)
+                                <tr>
+                                    <td class="lbl">NTN Number</td>
+                                    <td class="col">:</td>
+                                    <td class="val">{{ $compNtn }}</td>
+                                </tr>
+                                @endif
+
+                                @if(!empty($compStrn) && $isStrnEnabled)
+                                <tr>
+                                    <td class="lbl">STRN Number</td>
+                                    <td class="col">:</td>
+                                    <td class="val">{{ $compStrn }}</td>
+                                </tr>
+                                @endif
                             @endif
 
-                            @if(!empty($salesOfficerName) || !empty($sale->reference))
+                            @if($showSalesRef && (!empty($salesOfficerName) || !empty($sale->reference)))
                             <tr>
                                 <td class="lbl">Sales Reference</td>
                                 <td class="col">:</td>
@@ -1045,7 +1277,7 @@
                             </tr>
                             @endif
 
-                            @if(!empty($compPhone))
+                            @if($showCompPhone && !empty($compPhone))
                             <tr>
                                 <td class="lbl">Contact Details</td>
                                 <td class="col">:</td>
@@ -1079,24 +1311,32 @@
                 <tr>
                     @if($showTaxColumns)
                         <th style="width: 4%;" class="text-center">S.No</th>
-                        <th style="width: 26%;" class="text-start">Description of Product</th>
-                        <th style="width: 10%;" class="text-center">Batch / Sr. No</th>
+                        <th class="text-start">Description of Product</th>
+                        @if($showBatchCol)
+                            <th style="width: 10%;" class="text-center">Batch / Sr. No</th>
+                        @endif
                         <th style="width: 6%;" class="text-center">Quantity</th>
                         <th style="width: 8%;" class="text-end">Rate</th>
                         <th style="width: 9%;" class="text-end">Gross Amount</th>
-                        <th style="width: 5%;" class="text-end">Disc %</th>
+                        @if($showDiscCol)
+                            <th style="width: 5%;" class="text-end">Disc %</th>
+                        @endif
                         <th style="width: 10%;" class="text-end">Exclusive GST</th>
                         <th style="width: 7%;" class="text-end">Sales Tax</th>
                         <th style="width: 7%;" class="text-end">Further Tax {{ ((float)($sale->total_further_tax ?? 0) > 0) ? '@3%' : '(0%)' }}</th>
                         <th style="width: 8%;" class="text-end">Net Amount</th>
                     @else
                         <th style="width: 5%;" class="text-center">S.No</th>
-                        <th style="width: 39%;" class="text-start">Description of Product</th>
-                        <th style="width: 13%;" class="text-center">Batch / Sr. No</th>
+                        <th class="text-start">Description of Product</th>
+                        @if($showBatchCol)
+                            <th style="width: 13%;" class="text-center">Batch / Sr. No</th>
+                        @endif
                         <th style="width: 8%;" class="text-center">Quantity</th>
                         <th style="width: 10%;" class="text-end">Rate</th>
                         <th style="width: 12%;" class="text-end">Gross Amount</th>
-                        <th style="width: 5%;" class="text-end">Disc %</th>
+                        @if($showDiscCol)
+                            <th style="width: 5%;" class="text-end">Disc %</th>
+                        @endif
                         <th style="width: 8%;" class="text-end">Net Amount</th>
                     @endif
                 </tr>
@@ -1206,6 +1446,7 @@
                             @endif
                         </td>
 
+                        @if($showBatchCol)
                         <td class="text-center">
                             @if(!empty($batchNo))
                                 <span class="badge bg-light text-dark border">{{ $batchNo }}</span>
@@ -1215,6 +1456,7 @@
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
+                        @endif
 
                         <td class="text-center fw-bold">
                             {{ $itemQty == (int)$itemQty ? (int)$itemQty : number_format($itemQty, 2) }}
@@ -1228,9 +1470,11 @@
                             {{ number_format($itemGross, 2) }}
                         </td>
 
+                        @if($showDiscCol)
                         <td class="text-end">
                             {{ $discPct > 0 ? number_format($discPct, 2).'%' : '0.00' }}
                         </td>
+                        @endif
 
                         @if($showTaxColumns)
                             <td class="text-end">
@@ -1255,7 +1499,7 @@
 
             <tfoot>
                 <tr>
-                    <td colspan="3" class="text-end fw-bold">
+                    <td colspan="{{ $showBatchCol ? 3 : 2 }}" class="text-end fw-bold">
                         TOTAL:
                     </td>
 
@@ -1269,9 +1513,11 @@
                         {{ number_format($sumGrossAmt, 2) }}
                     </td>
 
+                    @if($showDiscCol)
                     <td class="text-end fw-bold">
                         0.00
                     </td>
+                    @endif
 
                     @if($showTaxColumns)
                         <td class="text-end fw-bold">
@@ -1397,7 +1643,7 @@
             <div class="invoice-bottom-left">
 
                 <!-- Amount in Words -->
-                @if(!empty($sale->total_amount_Words))
+                @if($showAmountWords && !empty($sale->total_amount_Words))
                     <div class="words-card">
                         <div class="words-label">
                             <i class="fas fa-money-bill-wave"></i> Amount in Words:
@@ -1410,17 +1656,20 @@
 
                 <!-- Terms & Conditions -->
                 @php
+                    $showInvoiceTerms = \App\Models\Setting::get('show_invoice_terms', '1') == '1';
                     $saleTermsList = null;
-                    if (!empty($sale->selected_terms)) {
-                        $selectedTermIds = is_array($sale->selected_terms) ? $sale->selected_terms : json_decode($sale->selected_terms, true);
-                        if (!empty($selectedTermIds)) {
-                            $saleTermsList = \App\Models\TermsAndCondition::whereIn('id', $selectedTermIds)->ordered()->get();
+                    if ($showInvoiceTerms) {
+                        if (!empty($sale->selected_terms)) {
+                            $selectedTermIds = is_array($sale->selected_terms) ? $sale->selected_terms : json_decode($sale->selected_terms, true);
+                            if (!empty($selectedTermIds)) {
+                                $saleTermsList = \App\Models\TermsAndCondition::whereIn('id', $selectedTermIds)->active()->ordered()->get();
+                            }
                         }
-                    }
-                    if (is_null($saleTermsList)) {
-                        $activeTerms = \App\Models\TermsAndCondition::active()->ordered()->get();
-                        if ($activeTerms->count() > 0) {
-                            $saleTermsList = $activeTerms;
+                        if (is_null($saleTermsList)) {
+                            $activeTerms = \App\Models\TermsAndCondition::active()->ordered()->get();
+                            if ($activeTerms->count() > 0) {
+                                $saleTermsList = $activeTerms;
+                            }
                         }
                     }
                 @endphp
@@ -1432,15 +1681,44 @@
                         </div>
                         <div class="terms-content">
                             @foreach($saleTermsList as $st)
-                                <div class="mb-1">
-                                    <strong style="text-transform: uppercase;">{{ $st->heading }}:</strong>
-                                    <span>{{ $st->paragraph }}</span>
+                                @php
+                                    $rawParagraph = trim($st->paragraph ?? '');
+                                    $rawLines = preg_split('/\r\n|\n|\r/', $rawParagraph);
+                                    $points = [];
+                                    foreach ($rawLines as $line) {
+                                        $trimmed = trim($line);
+                                        if (strlen($trimmed) > 0) {
+                                            $clean = preg_replace('/^[\s\-\*\•\–\—\.]+\s*/u', '', $trimmed);
+                                            $points[] = !empty($clean) ? $clean : $trimmed;
+                                        }
+                                    }
+                                @endphp
+                                <div class="term-block">
+                                    <div class="term-heading-label">
+                                        {{ $st->heading }}:
+                                    </div>
+                                    <div class="term-points-wrapper">
+                                        @if(count($points) > 0)
+                                            @foreach($points as $pt)
+                                                <div class="term-point-item">
+                                                    <span class="term-bullet">•</span>
+                                                    <span class="term-point-text">{{ $pt }}</span>
+                                                </div>
+                                            @endforeach
+                                        @else
+                                            <div class="term-point-item">
+                                                <span class="term-bullet">•</span>
+                                                <span class="term-point-text">{{ $rawParagraph }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
                     </div>
                 @endif
 
+                @if(\App\Models\Setting::get('show_invoice_signature', '1') == '1')
                 <!-- Authorized Signature -->
                 <div class="signature-section">
                     <div class="signature-line-box">
@@ -1450,6 +1728,7 @@
                         <i class="far fa-clock"></i> Printed on: {{ date('d-F-Y h:i A') }}
                     </div>
                 </div>
+                @endif
 
             </div>
 
@@ -1924,10 +2203,10 @@
                     @media print {
                         @page { 
                             size: A4 portrait; 
-                            margin-top: 50mm; 
-                            margin-bottom: 50mm; 
-                            margin-left: 10mm; 
-                            margin-right: 10mm; 
+                            margin: 0; 
+                        }
+                        .invoice-container {
+                            padding: 45mm 8mm 20mm 8mm !important;
                         }
                         .company-header-wrapper {
                             display: none !important;
@@ -1939,7 +2218,10 @@
                     @media print {
                         @page { 
                             size: A4 portrait; 
-                            margin: 8mm 10mm; 
+                            margin: 0; 
+                        }
+                        .invoice-container {
+                            padding: 6mm 8mm !important;
                         }
                     }
                 `;

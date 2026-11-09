@@ -123,7 +123,7 @@
                                                     $vColor = $variant['color'] ?? ($variant['color_val'] ?? '-');
                                                 @endphp
                                                 @if (!empty($vName))
-                                                    <span class="badge bg-light text-dark border ms-1">{{ $vName }} ({{ $vSize }} | {{ $vColor }})</span>
+                                                    <span class="badge bg-light text-dark border ms-1">{{ $vName }}{{ !empty(array_filter([$vSize, $vColor], fn($val) => !empty($val) && trim($val) !== '-' && trim($val) !== '')) ? ' (' . implode(' | ', array_filter([$vSize, $vColor], fn($val) => !empty($val) && trim($val) !== '-' && trim($val) !== '')) . ')' : '' }}</span>
                                                 @endif
                                                 <br>
                                                 <small class="text-muted">{{ $item->product->item_code ?? $item->product->product_code ?? '' }}</small>

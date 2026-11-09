@@ -608,7 +608,7 @@ $(document).ready(function () {
                             <tr data-pid="${productId}" data-pname="${productName}" data-pcode="${productCode}" data-vkey="${v.variant_key}" data-vname="${v.name}" data-stock="${v.current_stock}">
                                 <td class="ps-4 fw-bold">
                                     ${v.name}
-                                    <div class="text-muted small font-monospace">Size: ${v.size} | Color: ${v.color}</div>
+                                    ${(function(){ let d=[]; if(v.size && v.size !== "-") d.push("Size: " + v.size); if(v.color && v.color !== "-") d.push("Color: " + v.color); return d.length > 0 ? '<div class="text-muted small font-monospace">' + d.join(" | ") + '</div>' : ''; })()}
                                 </td>
                                 <td class="text-center">
                                     <span class="badge bg-primary px-2 py-1" style="font-size:.78rem;">

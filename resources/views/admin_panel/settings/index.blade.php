@@ -264,10 +264,403 @@
 
                                 <!-- Sales Tab -->
                                 <div class="tab-pane fade" id="sales" role="tabpanel">
+
+                                    <!-- Invoice Print Display Controls -->
+                                    <div class="card border mb-4 shadow-sm" style="border-radius: 8px;">
+                                        <div class="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <h6 class="mb-0 text-dark font-weight-bold">
+                                                    <i class="fas fa-sliders-h text-primary mr-2"></i>Invoice Print Display Controls (Field-by-Field Show / Hide)
+                                                </h6>
+                                                <small class="text-muted">Invoice print par konsi field dikhani hai aur konsi chupani hai, yahan se control karein (Live Sync).</small>
+                                            </div>
+                                            <span class="badge badge-success px-2 py-1" style="font-size: 11px;"><i class="fas fa-bolt mr-1"></i>Live Auto-Save</span>
+                                        </div>
+                                        <div class="card-body p-3">
+
+                                            <!-- Category 1: Invoice Header / Document Meta -->
+                                            <div class="mb-3">
+                                                <div class="d-flex align-items-center mb-2 pb-1 border-bottom">
+                                                    <span class="badge badge-primary mr-2"><i class="fas fa-file-invoice"></i></span>
+                                                    <strong class="text-dark" style="font-size: 13px;">1. Invoice & Shipper Information Header</strong>
+                                                </div>
+                                                <div class="row">
+                                                    <!-- Invoice Number -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-file-invoice-dollar text-primary mr-1"></i> Invoice Number
+                                                                </div>
+                                                                <small class="text-muted">Show / Hide invoice number</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_invoice_no]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_invoice_no" 
+                                                                    name="settings[inv_show_invoice_no]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_invoice_no', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_invoice_no"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Invoice Date -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="far fa-calendar-alt text-info mr-1"></i> Invoice Date
+                                                                </div>
+                                                                <small class="text-muted">Show / Hide invoice date</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_invoice_date]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_invoice_date" 
+                                                                    name="settings[inv_show_invoice_date]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_invoice_date', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_invoice_date"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Sales Reference / Officer -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-user-tag text-purple mr-1" style="color: #6f42c1;"></i> Sales Reference
+                                                                </div>
+                                                                <small class="text-muted">Officer or manual reference</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_sales_ref]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_sales_ref" 
+                                                                    name="settings[inv_show_sales_ref]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_sales_ref', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_sales_ref"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Company NTN & STRN -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-landmark text-secondary mr-1"></i> Company NTN / STRN
+                                                                </div>
+                                                                <small class="text-muted">Tax IDs on header</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_comp_tax]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_comp_tax" 
+                                                                    name="settings[inv_show_comp_tax]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_comp_tax', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_comp_tax"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Purchase Order No & Date -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-clipboard-check text-dark mr-1"></i> PO No & Date
+                                                                </div>
+                                                                <small class="text-muted">Customer purchase order</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_po_details]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_po_details" 
+                                                                    name="settings[inv_show_po_details]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_po_details', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_po_details"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Company Header Phone -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-phone-alt text-success mr-1"></i> Company Contact Phone
+                                                                </div>
+                                                                <small class="text-muted">Phone in header card</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_comp_contact]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_comp_contact" 
+                                                                    name="settings[inv_show_comp_contact]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_comp_contact', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_comp_contact"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Category 2: Customer Information -->
+                                            <div class="mb-3">
+                                                <div class="d-flex align-items-center mb-2 pb-1 border-bottom">
+                                                    <span class="badge badge-info mr-2"><i class="fas fa-user-tie"></i></span>
+                                                    <strong class="text-dark" style="font-size: 13px;">2. Customer Information Card</strong>
+                                                </div>
+                                                <div class="row">
+                                                    <!-- Customer Address -->
+                                                    <div class="col-md-3 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-map-marker-alt text-danger mr-1"></i> Customer Address
+                                                                </div>
+                                                                <small class="text-muted">Physical address</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_cust_address]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_cust_address" 
+                                                                    name="settings[inv_show_cust_address]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_cust_address', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_cust_address"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Customer Drug License No -->
+                                                    <div class="col-md-3 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-id-card text-warning mr-1"></i> Drug License No
+                                                                </div>
+                                                                <small class="text-muted">Customer license no</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_cust_license]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_cust_license" 
+                                                                    name="settings[inv_show_cust_license]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_cust_license', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_cust_license"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Customer Phone & Contact Person -->
+                                                    <div class="col-md-3 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-mobile-alt text-info mr-1"></i> Customer Contact
+                                                                </div>
+                                                                <small class="text-muted">Mobile & person</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_cust_contact]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_cust_contact" 
+                                                                    name="settings[inv_show_cust_contact]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_cust_contact', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_cust_contact"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Customer NTN / STRN / CNIC -->
+                                                    <div class="col-md-3 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-fingerprint text-primary mr-1"></i> NTN / STRN / CNIC
+                                                                </div>
+                                                                <small class="text-muted">Tax & ID numbers</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_cust_tax]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_cust_tax" 
+                                                                    name="settings[inv_show_cust_tax]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_cust_tax', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_cust_tax"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Category 3: Table Columns -->
+                                            <div class="mb-3">
+                                                <div class="d-flex align-items-center mb-2 pb-1 border-bottom">
+                                                    <span class="badge badge-warning text-dark mr-2"><i class="fas fa-boxes"></i></span>
+                                                    <strong class="text-dark" style="font-size: 13px;">3. Items Table Columns</strong>
+                                                </div>
+                                                <div class="row">
+                                                    <!-- Batch / Sr. No Column -->
+                                                    <div class="col-md-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-barcode text-dark mr-1"></i> Batch / Sr. No Column
+                                                                </div>
+                                                                <small class="text-muted">Batch number & serial number column in table</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_batch_column]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_batch_column" 
+                                                                    name="settings[inv_show_batch_column]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_batch_column', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_batch_column"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Item Discount % Column -->
+                                                    <div class="col-md-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-percent text-danger mr-1"></i> Item Discount (Disc %) Column
+                                                                </div>
+                                                                <small class="text-muted">Discount percentage column in table</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_disc_column]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_disc_column" 
+                                                                    name="settings[inv_show_disc_column]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_disc_column', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_disc_column"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Category 4: Footer, Summary & Legal -->
+                                            <div>
+                                                <div class="d-flex align-items-center mb-2 pb-1 border-bottom">
+                                                    <span class="badge badge-success mr-2"><i class="fas fa-receipt"></i></span>
+                                                    <strong class="text-dark" style="font-size: 13px;">4. Invoice Footer, Totals & Legal Details</strong>
+                                                </div>
+                                                <div class="row">
+                                                    <!-- Terms & Conditions Box -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-file-contract text-primary mr-1"></i> Terms & Conditions Box
+                                                                </div>
+                                                                <small class="text-muted">Terms / Warranty section</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[show_invoice_terms]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_show_invoice_terms" 
+                                                                    name="settings[show_invoice_terms]" value="1" 
+                                                                    {{ \App\Models\Setting::get('show_invoice_terms', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_show_invoice_terms"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Authorized Signature Line -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-file-signature text-info mr-1"></i> Authorized Signature
+                                                                </div>
+                                                                <small class="text-muted">Signature line & timestamp</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[show_invoice_signature]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_show_invoice_signature" 
+                                                                    name="settings[show_invoice_signature]" value="1" 
+                                                                    {{ \App\Models\Setting::get('show_invoice_signature', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_show_invoice_signature"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Customer Running Balance -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-wallet text-success mr-1"></i> Customer Balance
+                                                                </div>
+                                                                <small class="text-muted">Previous & closing ledger</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[summary_customer_balance]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_summary_customer_balance" 
+                                                                    name="settings[summary_customer_balance]" value="1" 
+                                                                    {{ \App\Models\Setting::get('summary_customer_balance', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_summary_customer_balance"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Tax & NTN/STRN Breakdown -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-percentage text-warning mr-1"></i> Tax Breakdown
+                                                                </div>
+                                                                <small class="text-muted">ST, FT & GST columns</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[print_tax_breakdown]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_print_tax_breakdown" 
+                                                                    name="settings[print_tax_breakdown]" value="1" 
+                                                                    {{ \App\Models\Setting::get('print_tax_breakdown', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_print_tax_breakdown"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Amount in Words -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-money-bill-wave text-success mr-1"></i> Amount in Words
+                                                                </div>
+                                                                <small class="text-muted">Words callout box</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_amount_in_words]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_amount_in_words" 
+                                                                    name="settings[inv_show_amount_in_words]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_amount_in_words', '1') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_amount_in_words"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
                                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                                         <div>
-                                            <h5 class="mb-0 text-dark font-weight-bold"><i class="fas fa-file-contract text-primary mr-2"></i>Invoice Terms & Conditions</h5>
-                                            <small class="text-muted">Manage multiple headings and paragraphs displayed on invoices.</small>
+                                            <h5 class="mb-0 text-dark font-weight-bold"><i class="fas fa-file-contract text-primary mr-2"></i>Invoice Terms & Conditions Content</h5>
+                                            <small class="text-muted">Add, edit, or toggle individual terms (e.g. Warranty, Returns). Use the eye icon to show/hide specific terms.</small>
                                         </div>
                                         @if($canEditSettings)
                                             <button type="button" class="btn btn-sm btn-primary" id="erpAddTermBtn">
@@ -639,6 +1032,48 @@
                                 icon: 'error',
                                 title: 'Error!',
                                 text: msg,
+                            });
+                        }
+                    });
+                });
+
+                // Live AJAX update for Invoice Display Switches
+                $(document).on('change', '.invoice-display-switch', function() {
+                    var $switch = $(this);
+                    var rawName = $switch.attr('name');
+                    var match = rawName.match(/settings\[(.*?)\]/);
+                    if (!match) return;
+                    var key = match[1];
+                    var val = $switch.is(':checked') ? '1' : '0';
+
+                    var payload = {
+                        _token: csrfToken,
+                        settings: {}
+                    };
+                    payload.settings[key] = val;
+
+                    $.ajax({
+                        url: '{{ route("settings.update") }}',
+                        method: 'POST',
+                        data: payload,
+                        success: function() {
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 1500,
+                                timerProgressBar: true
+                            });
+                            Toast.fire({
+                                icon: 'success',
+                                title: 'Invoice display updated'
+                            });
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Failed to update invoice display setting.'
                             });
                         }
                     });
