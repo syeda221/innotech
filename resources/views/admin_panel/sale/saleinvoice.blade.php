@@ -47,36 +47,56 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Top Action Buttons */
+        /* Top Action Buttons - Professional Full-Width Sticky Navbar */
         .print-btn-container {
-            position: fixed;
-            top: 20px;
-            right: 24px;
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: #ffffff;
+            border-bottom: 1px solid #cbd5e1;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+            padding: 8px 24px;
             z-index: 1050;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .print-btn-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .print-btn-right {
+            display: flex;
+            align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .print-btn-container .btn {
             font-size: 12px;
             font-weight: 700;
-            padding: 7px 14px;
+            padding: 6px 13px;
             border-radius: 6px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
             transition: all 0.2s ease;
         }
 
         .print-btn-container .btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
         }
 
         .print-btn-container .btn-group {
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
             border-radius: 6px;
             display: inline-flex;
         }
@@ -125,7 +145,7 @@
         .invoice-container {
             max-width: 210mm;
             min-height: auto;
-            margin: 15px auto 30px auto;
+            margin: 20px auto 40px auto;
             background: #ffffff;
             padding: 22px 26px;
             box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
@@ -174,6 +194,11 @@
         .invoice-title-wrapper {
             text-align: center;
             margin: 6px 0 8px 0;
+        }
+        .invoice-title-wrapper.d-none {
+            display: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
         .invoice-badge-title {
@@ -676,6 +701,12 @@
             }
 
             /* Clean Print Headers & Footers - Zero Heavy Black Ink Blocks */
+            .invoice-title-wrapper.d-none {
+                display: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
             .invoice-badge-title {
                 background: #f8fafc !important;
                 color: #1e3a5f !important;
@@ -1017,53 +1048,125 @@
     $showBatchCol    = \App\Models\Setting::get('inv_show_batch_column', '1') == '1';
     $showDiscCol     = \App\Models\Setting::get('inv_show_disc_column', '1') == '1';
     $showAmountWords = \App\Models\Setting::get('inv_show_amount_in_words', '1') == '1';
+    $showHeadingOnSimple = \App\Models\Setting::get('inv_show_heading_on_simple', '0') == '1';
+
+    $isQuotation = ($sale->sale_status === 'quotation' || ($isQuotation ?? false));
+    $isEst = ($isEstimate ?? false);
+
+    // Determine if sale is a Warranty Invoice (contains serial numbers / IMEIs or warranty tracking)
+    $hasWarranty = false;
+    if (request()->query('type') === 'warranty' || request()->query('warranty') == '1') {
+        $hasWarranty = true;
+    } elseif (request()->query('type') === 'simple' || request()->query('warranty') == '0') {
+        $hasWarranty = false;
+    } else {
+        if (!empty($saleItems)) {
+            foreach ($saleItems as $it) {
+                $rawSerials = $it['serials'] ?? null;
+                if (!empty($rawSerials)) {
+                    if (is_array($rawSerials) && count($rawSerials) > 0) {
+                        $hasWarranty = true;
+                        break;
+                    } elseif (is_string($rawSerials)) {
+                        $dec = json_decode($rawSerials, true);
+                        if (is_array($dec) && count($dec) > 0) {
+                            $hasWarranty = true;
+                            break;
+                        } elseif (strlen(trim($rawSerials)) > 0 && trim($rawSerials) !== '[]') {
+                            $hasWarranty = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (!$hasWarranty && isset($sale) && $sale->items) {
+            foreach ($sale->items as $sItem) {
+                if (!empty($sItem->serials)) {
+                    $hasWarranty = true;
+                    break;
+                }
+                if ($sItem->product && $sItem->product->tracking_type === 'serial') {
+                    $hasWarranty = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    $badgeTitle = '';
+    if ($isQuotation) {
+        $badgeTitle = 'QUOTATION';
+    } elseif ($isEst) {
+        $badgeTitle = 'ESTIMATE';
+    } elseif ($hasWarranty) {
+        $badgeTitle = 'INVOICE';
+    } elseif ($showHeadingOnSimple) {
+        $badgeTitle = 'INVOICE';
+    } else {
+        $badgeTitle = ''; // Simple Sale: heading mein kuch na aye
+    }
 @endphp
 
-    <!-- Print / Action Buttons -->
+    <!-- Print / Action Buttons - Top Navbar -->
     <div class="print-btn-container no-print">
-        <button onclick="printReceipt()" class="btn btn-primary" title="Print 80mm Thermal Receipt">
-            <i class="fas fa-receipt"></i> Print Receipt
-        </button>
-
-        <!-- Split Dropdown: Simple Print & Letterhead Print -->
-        <div class="btn-group">
-            <button type="button" onclick="printA4(false)" class="btn btn-success" title="Simple Print (Company details & header included)">
-                <i class="fas fa-file-invoice"></i> Print (Simple)
-            </button>
-            <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="Print Options">
-                <span class="visually-hidden">Toggle Dropdown</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow">
-                <li>
-                    <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" onclick="printA4(false)">
-                        <i class="fas fa-file-invoice text-success fa-fw" style="font-size: 14px;"></i>
-                        <div>
-                            <div class="fw-bold text-dark">Print (Simple)</div>
-                            <div class="text-muted" style="font-size: 10px;">Company details & header included</div>
-                        </div>
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider my-1"></li>
-                <li>
-                    <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" onclick="printA4(true)">
-                        <i class="fas fa-file-alt text-primary fa-fw" style="font-size: 14px;"></i>
-                        <div>
-                            <div class="fw-bold text-dark">Print (Letterhead)</div>
-                            <div class="text-muted" style="font-size: 10px;">Hide header, ~2 in top & bottom margin</div>
-                        </div>
-                    </a>
-                </li>
-            </ul>
+        <div class="print-btn-left">
+            <a href="javascript:void(0)" onclick="handleGoBack()" class="btn btn-secondary" style="background: #334155; border-color: #334155; color: #ffffff;">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            <span class="fw-bold text-dark d-none d-md-inline" style="font-size: 13px;">
+                <i class="fas fa-file-invoice text-primary me-1"></i> {{ $sale->invoice_no }}
+            </span>
         </div>
 
-        <!-- Direct 1-Click Letterhead Button -->
-        <button type="button" onclick="printA4(true)" class="btn btn-info text-white" title="Letterhead Print (~2 in margin for pre-printed stationary)">
-            <i class="fas fa-file-alt"></i> Print (Letterhead)
-        </button>
+        <div class="print-btn-right">
+            <button onclick="printReceipt()" class="btn btn-primary" title="Print 80mm Thermal Receipt">
+                <i class="fas fa-receipt"></i> Print Receipt
+            </button>
 
-        <a href="javascript:void(0)" onclick="handleGoBack()" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back
-        </a>
+            @if(!$isQuotation && !$isEst)
+                <!-- Quick Heading Switcher -->
+                <button type="button" class="btn btn-outline-secondary" id="btnToggleInvoiceHeading" onclick="toggleInvoiceHeading()" title="Click to toggle INVOICE heading on/off for this print">
+                    <i class="fas fa-heading"></i> Heading: <span id="headingStatusText" class="{{ !empty($badgeTitle) ? 'fw-bold text-success' : 'text-muted' }}">{{ !empty($badgeTitle) ? $badgeTitle : 'None (Simple)' }}</span>
+                </button>
+            @endif
+
+            <!-- Split Dropdown: Simple Print & Letterhead Print -->
+            <div class="btn-group">
+                <button type="button" onclick="printA4(false)" class="btn btn-success" title="Simple Print (Company details & header included)">
+                    <i class="fas fa-file-invoice"></i> Print (Simple)
+                </button>
+                <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="Print Options">
+                    <span class="visually-hidden">Toggle Dropdown</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" onclick="printA4(false)">
+                            <i class="fas fa-file-invoice text-success fa-fw" style="font-size: 14px;"></i>
+                            <div>
+                                <div class="fw-bold text-dark">Print (Simple)</div>
+                                <div class="text-muted" style="font-size: 10px;">Company details & header included</div>
+                            </div>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center gap-2" href="javascript:void(0)" onclick="printA4(true)">
+                            <i class="fas fa-file-alt text-primary fa-fw" style="font-size: 14px;"></i>
+                            <div>
+                                <div class="fw-bold text-dark">Print (Letterhead)</div>
+                                <div class="text-muted" style="font-size: 10px;">Hide header, ~2 in top & bottom margin</div>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Direct 1-Click Letterhead Button -->
+            <button type="button" onclick="printA4(true)" class="btn btn-info text-white" title="Letterhead Print (~2 in margin for pre-printed stationary)">
+                <i class="fas fa-file-alt"></i> Print (Letterhead)
+            </button>
+        </div>
     </div>
 
     <!-- ========================================== -->
@@ -1102,16 +1205,8 @@
         @endif
 
         <!-- Document Title Badge -->
-        <div class="invoice-title-wrapper">
-            <span class="invoice-badge-title">
-                @if($sale->sale_status === 'quotation' || ($isQuotation ?? false))
-                    QUOTATION
-                @elseif($isEstimate ?? false)
-                    ESTIMATE
-                @else
-                    SALES INVOICE
-                @endif
-            </span>
+        <div class="invoice-title-wrapper {{ empty($badgeTitle) ? 'd-none' : '' }}" id="invoiceTitleBadgeWrapper">
+            <span class="invoice-badge-title" id="invoiceBadgeTitle">{{ $badgeTitle }}</span>
         </div>
 
         <!-- Customer & Shipper Information Header (Structured 2-Column Cards) -->
@@ -2267,6 +2362,25 @@
                 }, 400);
             }
         });
+
+        function toggleInvoiceHeading() {
+            var wrapper = document.getElementById('invoiceTitleBadgeWrapper');
+            var badge = document.getElementById('invoiceBadgeTitle');
+            var statusText = document.getElementById('headingStatusText');
+            if (!wrapper || !badge || !statusText) return;
+
+            if (wrapper.classList.contains('d-none')) {
+                wrapper.classList.remove('d-none');
+                badge.innerText = 'INVOICE';
+                statusText.innerText = 'INVOICE';
+                statusText.className = 'fw-bold text-success';
+            } else {
+                wrapper.classList.add('d-none');
+                badge.innerText = '';
+                statusText.innerText = 'None (Simple)';
+                statusText.className = 'text-muted';
+            }
+        }
 
         function handleGoBack() {
             const urlParams = new URLSearchParams(window.location.search);

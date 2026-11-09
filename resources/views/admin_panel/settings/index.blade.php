@@ -325,6 +325,26 @@
                                                         </div>
                                                     </div>
 
+                                                    <!-- Heading on Simple Sale -->
+                                                    <div class="col-md-4 col-sm-6 mb-2">
+                                                        <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <div class="font-weight-bold text-dark" style="font-size: 12px;">
+                                                                    <i class="fas fa-heading text-primary mr-1"></i> Heading on Simple Sale
+                                                                </div>
+                                                                <small class="text-muted">Off = Hide heading on simple, show on warranty</small>
+                                                            </div>
+                                                            <div class="custom-control custom-switch custom-switch-md ml-2">
+                                                                <input type="hidden" name="settings[inv_show_heading_on_simple]" value="0">
+                                                                <input type="checkbox" class="custom-control-input invoice-display-switch" id="setting_inv_show_heading_on_simple" 
+                                                                    name="settings[inv_show_heading_on_simple]" value="1" 
+                                                                    {{ \App\Models\Setting::get('inv_show_heading_on_simple', '0') == '1' ? 'checked' : '' }}
+                                                                    {{ !$canEditSettings ? 'disabled' : '' }}>
+                                                                <label class="custom-control-label" for="setting_inv_show_heading_on_simple"></label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
                                                     <!-- Sales Reference / Officer -->
                                                     <div class="col-md-4 col-sm-6 mb-2">
                                                         <div class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
