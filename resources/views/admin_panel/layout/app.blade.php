@@ -901,6 +901,7 @@
                                         @endcan
                                         @can('sales.view')
                                             <li><a href="{{ url('sale') }}"><i class="fas fa-list"></i> All Sales</a></li>
+                                            <li><a href="{{ route('sale.return.index') }}"><i class="fas fa-undo"></i> Sale Returns</a></li>
                                             <li><a href="{{ route('sales.configuration') }}"><i class="fas fa-sliders-h text-primary"></i> Sale Fields &amp; Tax Config</a></li>
                                         @endcan
                                         @can('customers.view')
@@ -1130,6 +1131,7 @@
                                         @can('sale.report.view')
                                             <li><a href="{{ route('report.sale') }}"><i class="fa-solid fa-users"></i> Sale
                                                     Report</a></li>
+                                            <li><a href="{{ route('report.sale_return') }}"><i class="fa-solid fa-arrow-rotate-left text-danger"></i> Sale Return Report</a></li>
                                             <li><a href="{{ route('report.product_sale_customer_wise') }}"><i class="fa-solid fa-users-between-lines"></i> Product Sale (Customer Wise)</a></li>
                                             <li><a href="{{ route('report.sales_officer_sale') }}"><i class="fa-solid fa-user-tie"></i> Sales Officer Sale Report</a></li>
                                         @endcan
