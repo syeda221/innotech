@@ -384,14 +384,14 @@
                                         <th class="py-3 ps-3 rounded-start text-secondary fw-semibold text-uppercase small" style="width: 40px; vertical-align: middle;">
                                             <input type="checkbox" id="selectAllPurchases" style="cursor: pointer; width: 16px; height: 16px; margin: 0 auto !important;">
                                         </th>
-                                        <th class="py-3 text-secondary fw-semibold text-uppercase small">Bill#</th>
+                                        <th class="py-3 text-secondary fw-semibold text-uppercase small" style="width: 50px;">SR#</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small">Date</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small">Invoice No</th>
-                                        <th class="py-3 text-secondary fw-semibold text-uppercase small">Vendor Ref#</th>
+                                        <th class="py-3 text-secondary fw-semibold text-uppercase small">Vendor inv#</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small">Remarks</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small">Status</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small">Vendor</th>
-                                        <th class="py-3 text-secondary fw-semibold text-uppercase small">Location</th>
+                                        <th class="py-3 text-secondary fw-semibold text-uppercase small">Warehouse</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small text-end">Inline Disc</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small text-end">Add. Disc</th>
                                         <th class="py-3 text-secondary fw-semibold text-uppercase small text-end">Net Amount</th>

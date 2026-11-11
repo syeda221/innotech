@@ -2527,20 +2527,56 @@ class ReportingController extends Controller
                 foreach ($ledgerData['transactions'] as $row) {
                     $desc = $row['description'] ?? '';
 
+                    $existingAgainst = '';
+                    if (preg_match('/\s*(\(Against[^)]+\))/i', $desc, $m)) {
+                        $existingAgainst = $m[1];
+                        $desc = trim(str_replace($m[0], '', $desc));
+                    }
+
                     // Try to find payment account name for receipt entries
                     $accountName = '';
-                    if ($row['credit'] > 0 && $row['source_type']) {
+                    if ($row['credit'] > 0 && ($row['source_type'] ?? null)) {
                         $accountName = $this->getPaymentAccountName($row['source_type'], $row['source_id']);
                     }
                     if ($accountName) {
                         $desc .= ' [A/C: ' . $accountName . ']';
                     }
 
+                    // Get invoice allocations if available
+                    $allocData = $row['alloc_data'] ?? $balanceService->getVoucherAllocationsData($row['source_type'] ?? null, $row['source_id'] ?? null);
+                    $againstSummary = !empty($allocData['summary']) ? $allocData['summary'] : $existingAgainst;
+                    if (!empty($againstSummary) && !str_contains($desc, 'Against ')) {
+                        $desc .= ' ' . $againstSummary;
+                    }
+
                     $ref = '-';
-                    if (preg_match('/Invoice #(\S+)/', $desc, $matches)) {
-                        $ref = $matches[1];
-                    } elseif (preg_match('/Receipt #(\S+)/', $desc, $matches)) {
-                        $ref = $matches[1];
+                    $invoiceUrl = null;
+                    $invoiceBadgesHtml = null;
+
+                    if (!empty($allocData['ref_text'])) {
+                        $ref = $allocData['ref_text'];
+                        $invoiceUrl = $allocData['first_url'];
+                        $invoiceBadgesHtml = $allocData['badges_html'];
+                    } else {
+                        if (preg_match('/Invoice #(\S+)/', $desc, $matches)) {
+                            $ref = $matches[1];
+                        } elseif (preg_match('/Sale Return #(\S+)/', $desc, $matches)) {
+                            $ref = $matches[1];
+                        } elseif (preg_match('/Receipt #(\S+)/', $desc, $matches)) {
+                            $ref = $matches[1];
+                        }
+
+                        if (($row['source_type'] ?? '') === \App\Models\Sale::class || ($row['source_type'] ?? '') === 'Sale' || ($row['source_type'] ?? '') === 'SaleInvoice') {
+                            if (!empty($row['source_id'])) {
+                                $invoiceUrl = route('sales.invoice', $row['source_id']);
+                            }
+                        }
+                        if (!$invoiceUrl && $ref !== '-') {
+                            $saleId = \App\Models\Sale::where('invoice_no', $ref)->orWhere('id', $ref)->value('id');
+                            if ($saleId) {
+                                $invoiceUrl = route('sales.invoice', $saleId);
+                            }
+                        }
                     }
 
                     $entryDate = $row['date'];
@@ -2552,24 +2588,13 @@ class ReportingController extends Controller
                         $sortDate = \Carbon\Carbon::parse($entryDate)->format('Y-m-d');
                     }
 
-                    $invoiceUrl = null;
-                    if (($row['source_type'] ?? '') === \App\Models\Sale::class || ($row['source_type'] ?? '') === 'Sale' || ($row['source_type'] ?? '') === 'SaleInvoice') {
-                        if (!empty($row['source_id'])) {
-                            $invoiceUrl = route('sales.invoice', $row['source_id']);
-                        }
-                    }
-                    if (!$invoiceUrl && $ref !== '-') {
-                        $saleId = \App\Models\Sale::where('invoice_no', $ref)->orWhere('id', $ref)->value('id');
-                        if ($saleId) {
-                            $invoiceUrl = route('sales.invoice', $saleId);
-                        }
-                    }
-
                     $allTransactions[] = [
                         'sort_date' => $sortDate,
                         'date' => $formattedDate,
                         'invoice' => $ref,
                         'invoice_url' => $invoiceUrl,
+                        'invoice_badges_html' => $invoiceBadgesHtml,
+                        'invoices' => $allocData['invoices'] ?? [],
                         'description' => $desc,
                         'customer_name' => $customerName,
                         'debit' => $row['debit'] ?? 0,
@@ -2610,8 +2635,14 @@ class ReportingController extends Controller
 
         $ledgerData = $balanceService->getCustomerLedger($customerId, $start, $end);
 
-        $transactions = collect($ledgerData['transactions'])->map(function ($row) {
+        $transactions = collect($ledgerData['transactions'])->map(function ($row) use ($balanceService) {
             $desc = $row['description'] ?? '';
+
+            $existingAgainst = '';
+            if (preg_match('/\s*(\(Against[^)]+\))/i', $desc, $m)) {
+                $existingAgainst = $m[1];
+                $desc = trim(str_replace($m[0], '', $desc));
+            }
 
             // Try to find payment account name for receipt entries
             $accountName = '';
@@ -2622,23 +2653,40 @@ class ReportingController extends Controller
                 $desc .= ' [A/C: ' . $accountName . ']';
             }
 
-            $ref = '-';
-            if (preg_match('/Invoice #(\S+)/', $desc, $matches)) {
-                $ref = $matches[1];
-            } elseif (preg_match('/Receipt #(\S+)/', $desc, $matches)) {
-                $ref = $matches[1];
+            // Get invoice allocations if available
+            $allocData = $row['alloc_data'] ?? $balanceService->getVoucherAllocationsData($row['source_type'] ?? null, $row['source_id'] ?? null);
+            $againstSummary = !empty($allocData['summary']) ? $allocData['summary'] : $existingAgainst;
+            if (!empty($againstSummary) && !str_contains($desc, 'Against ')) {
+                $desc .= ' ' . $againstSummary;
             }
 
+            $ref = '-';
             $invoiceUrl = null;
-            if (($row['source_type'] ?? '') === \App\Models\Sale::class || ($row['source_type'] ?? '') === 'Sale' || ($row['source_type'] ?? '') === 'SaleInvoice') {
-                if (!empty($row['source_id'])) {
-                    $invoiceUrl = route('sales.invoice', $row['source_id']);
+            $invoiceBadgesHtml = null;
+
+            if (!empty($allocData['ref_text'])) {
+                $ref = $allocData['ref_text'];
+                $invoiceUrl = $allocData['first_url'];
+                $invoiceBadgesHtml = $allocData['badges_html'];
+            } else {
+                if (preg_match('/Invoice #(\S+)/', $desc, $matches)) {
+                    $ref = $matches[1];
+                } elseif (preg_match('/Sale Return #(\S+)/', $desc, $matches)) {
+                    $ref = $matches[1];
+                } elseif (preg_match('/Receipt #(\S+)/', $desc, $matches)) {
+                    $ref = $matches[1];
                 }
-            }
-            if (!$invoiceUrl && $ref !== '-') {
-                $saleId = \App\Models\Sale::where('invoice_no', $ref)->orWhere('id', $ref)->value('id');
-                if ($saleId) {
-                    $invoiceUrl = route('sales.invoice', $saleId);
+
+                if (($row['source_type'] ?? '') === \App\Models\Sale::class || ($row['source_type'] ?? '') === 'Sale' || ($row['source_type'] ?? '') === 'SaleInvoice') {
+                    if (!empty($row['source_id'])) {
+                        $invoiceUrl = route('sales.invoice', $row['source_id']);
+                    }
+                }
+                if (!$invoiceUrl && $ref !== '-') {
+                    $saleId = \App\Models\Sale::where('invoice_no', $ref)->orWhere('id', $ref)->value('id');
+                    if ($saleId) {
+                        $invoiceUrl = route('sales.invoice', $saleId);
+                    }
                 }
             }
 
@@ -2653,6 +2701,8 @@ class ReportingController extends Controller
                 'date' => $formattedDate,
                 'invoice' => $ref,
                 'invoice_url' => $invoiceUrl,
+                'invoice_badges_html' => $invoiceBadgesHtml,
+                'invoices' => $allocData['invoices'] ?? [],
                 'description' => $desc,
                 'debit' => $row['debit'] ?? 0,
                 'credit' => $row['credit'] ?? 0,
@@ -2749,6 +2799,12 @@ class ReportingController extends Controller
                 foreach ($ledgerData['transactions'] as $row) {
                     $desc = $row['description'] ?? '';
 
+                    $existingAgainst = '';
+                    if (preg_match('/\s*(\(Against[^)]+\))/i', $desc, $m)) {
+                        $existingAgainst = $m[1];
+                        $desc = trim(str_replace($m[0], '', $desc));
+                    }
+
                     $accountName = '';
                     if ($row['debit'] > 0 && ($row['source_type'] ?? null)) {
                         $accountName = $this->getPaymentAccountName($row['source_type'], $row['source_id']);
@@ -2757,13 +2813,41 @@ class ReportingController extends Controller
                         $desc .= ' [A/C: ' . $accountName . ']';
                     }
 
+                    // Get purchase bill allocations if available
+                    $allocData = $row['alloc_data'] ?? $balanceService->getVoucherAllocationsData($row['source_type'] ?? null, $row['source_id'] ?? null);
+                    $againstSummary = !empty($allocData['summary']) ? $allocData['summary'] : $existingAgainst;
+                    if (!empty($againstSummary) && !str_contains($desc, 'Against ')) {
+                        $desc .= ' ' . $againstSummary;
+                    }
+
                     $ref = '-';
-                    if (preg_match('/PUR-(\S+)/', $desc, $matches)) {
-                        $ref = 'PUR-' . $matches[1];
-                    } elseif (preg_match('/Payment #(\S+)/', $desc, $matches)) {
-                        $ref = $matches[1];
-                    } elseif (preg_match('/Purchase #(\S+)/', $desc, $matches)) {
-                        $ref = $matches[1];
+                    $invoiceUrl = null;
+                    $invoiceBadgesHtml = null;
+
+                    if (!empty($allocData['ref_text'])) {
+                        $ref = $allocData['ref_text'];
+                        $invoiceUrl = $allocData['first_url'];
+                        $invoiceBadgesHtml = $allocData['badges_html'];
+                    } else {
+                        if (preg_match('/PUR-(\S+)/', $desc, $matches)) {
+                            $ref = 'PUR-' . $matches[1];
+                        } elseif (preg_match('/Payment #(\S+)/', $desc, $matches)) {
+                            $ref = $matches[1];
+                        } elseif (preg_match('/Purchase #(\S+)/', $desc, $matches)) {
+                            $ref = $matches[1];
+                        }
+
+                        if (($row['source_type'] ?? '') === \App\Models\Purchase::class || ($row['source_type'] ?? '') === 'Purchase') {
+                            if (!empty($row['source_id'])) {
+                                $invoiceUrl = route('purchase.invoice', $row['source_id']);
+                            }
+                        }
+                        if (!$invoiceUrl && $ref !== '-') {
+                            $purchaseId = \App\Models\Purchase::where('invoice_no', $ref)->orWhere('id', $ref)->value('id');
+                            if ($purchaseId) {
+                                $invoiceUrl = route('purchase.invoice', $purchaseId);
+                            }
+                        }
                     }
 
                     $entryDate = $row['date'];
@@ -2775,32 +2859,21 @@ class ReportingController extends Controller
                         $sortDate = \Carbon\Carbon::parse($entryDate)->format('Y-m-d');
                     }
 
-                    $invoiceUrl = null;
-                    if (($row['source_type'] ?? '') === \App\Models\Purchase::class || ($row['source_type'] ?? '') === 'Purchase') {
-                        if (!empty($row['source_id'])) {
-                            $invoiceUrl = route('purchase.invoice', $row['source_id']);
-                        }
-                    }
-                    if (!$invoiceUrl && $ref !== '-') {
-                        $purchaseId = \App\Models\Purchase::where('invoice_no', $ref)->orWhere('id', $ref)->value('id');
-                        if ($purchaseId) {
-                            $invoiceUrl = route('purchase.invoice', $purchaseId);
-                        }
-                    }
-
                     $allTransactions[] = [
-                        'sort_date'         => $sortDate,
-                        'date'              => $formattedDate,
-                        'invoice'           => $ref,
-                        'invoice_no'        => $row['invoice_no'] ?? ($ref !== '-' ? $ref : null),
-                        'invoice_url'       => $invoiceUrl,
-                        'vendor_invoice_no' => $row['vendor_invoice_no'] ?? null,
-                        'source_type'       => $row['source_type'] ?? null,
-                        'description'       => $desc,
-                        'vendor_name'       => $vendorName,
-                        'debit'             => $row['debit'] ?? 0,
-                        'credit'            => $row['credit'] ?? 0,
-                        'balance'           => $row['balance'] ?? 0,
+                        'sort_date'           => $sortDate,
+                        'date'                => $formattedDate,
+                        'invoice'             => $ref,
+                        'invoice_no'          => $row['invoice_no'] ?? ($ref !== '-' ? $ref : null),
+                        'invoice_url'         => $invoiceUrl,
+                        'invoice_badges_html' => $invoiceBadgesHtml,
+                        'invoices'            => $allocData['invoices'] ?? [],
+                        'vendor_invoice_no'   => $row['vendor_invoice_no'] ?? null,
+                        'source_type'         => $row['source_type'] ?? null,
+                        'description'         => $desc,
+                        'vendor_name'         => $vendorName,
+                        'debit'               => $row['debit'] ?? 0,
+                        'credit'              => $row['credit'] ?? 0,
+                        'balance'             => $row['balance'] ?? 0,
                     ];
                 }
 
@@ -2836,8 +2909,14 @@ class ReportingController extends Controller
 
         $ledgerData = $balanceService->getVendorLedger($vendorId, $start, $end);
 
-        $transactions = collect($ledgerData['transactions'])->map(function ($row) {
+        $transactions = collect($ledgerData['transactions'])->map(function ($row) use ($balanceService) {
             $desc = $row['description'] ?? '';
+
+            $existingAgainst = '';
+            if (preg_match('/\s*(\(Against[^)]+\))/i', $desc, $m)) {
+                $existingAgainst = $m[1];
+                $desc = trim(str_replace($m[0], '', $desc));
+            }
 
             $accountName = '';
             if ($row['debit'] > 0 && ($row['source_type'] ?? null)) {
@@ -2847,25 +2926,40 @@ class ReportingController extends Controller
                 $desc .= ' [A/C: ' . $accountName . ']';
             }
 
-            $ref = '-';
-            if (preg_match('/PUR-(\S+)/', $desc, $matches)) {
-                $ref = 'PUR-' . $matches[1];
-            } elseif (preg_match('/Payment #(\S+)/', $desc, $matches)) {
-                $ref = $matches[1];
-            } elseif (preg_match('/Purchase #(\S+)/', $desc, $matches)) {
-                $ref = $matches[1];
+            // Get purchase bill allocations if available
+            $allocData = $row['alloc_data'] ?? $balanceService->getVoucherAllocationsData($row['source_type'] ?? null, $row['source_id'] ?? null);
+            $againstSummary = !empty($allocData['summary']) ? $allocData['summary'] : $existingAgainst;
+            if (!empty($againstSummary) && !str_contains($desc, 'Against ')) {
+                $desc .= ' ' . $againstSummary;
             }
 
+            $ref = '-';
             $invoiceUrl = null;
-            if (($row['source_type'] ?? '') === \App\Models\Purchase::class || ($row['source_type'] ?? '') === 'Purchase') {
-                if (!empty($row['source_id'])) {
-                    $invoiceUrl = route('purchase.invoice', $row['source_id']);
+            $invoiceBadgesHtml = null;
+
+            if (!empty($allocData['ref_text'])) {
+                $ref = $allocData['ref_text'];
+                $invoiceUrl = $allocData['first_url'];
+                $invoiceBadgesHtml = $allocData['badges_html'];
+            } else {
+                if (preg_match('/PUR-(\S+)/', $desc, $matches)) {
+                    $ref = 'PUR-' . $matches[1];
+                } elseif (preg_match('/Payment #(\S+)/', $desc, $matches)) {
+                    $ref = $matches[1];
+                } elseif (preg_match('/Purchase #(\S+)/', $desc, $matches)) {
+                    $ref = $matches[1];
                 }
-            }
-            if (!$invoiceUrl && $ref !== '-') {
-                $purchaseId = \App\Models\Purchase::where('invoice_no', $ref)->orWhere('id', $ref)->value('id');
-                if ($purchaseId) {
-                    $invoiceUrl = route('purchase.invoice', $purchaseId);
+
+                if (($row['source_type'] ?? '') === \App\Models\Purchase::class || ($row['source_type'] ?? '') === 'Purchase') {
+                    if (!empty($row['source_id'])) {
+                        $invoiceUrl = route('purchase.invoice', $row['source_id']);
+                    }
+                }
+                if (!$invoiceUrl && $ref !== '-') {
+                    $purchaseId = \App\Models\Purchase::where('invoice_no', $ref)->orWhere('id', $ref)->value('id');
+                    if ($purchaseId) {
+                        $invoiceUrl = route('purchase.invoice', $purchaseId);
+                    }
                 }
             }
 
@@ -2877,16 +2971,18 @@ class ReportingController extends Controller
             }
 
             return [
-                'date'              => $formattedDate,
-                'invoice'           => $ref,
-                'invoice_no'        => $row['invoice_no'] ?? ($ref !== '-' ? $ref : null),
-                'invoice_url'       => $invoiceUrl,
-                'vendor_invoice_no' => $row['vendor_invoice_no'] ?? null,
-                'source_type'       => $row['source_type'] ?? null,
-                'description'       => $desc,
-                'debit'             => $row['debit'] ?? 0,
-                'credit'            => $row['credit'] ?? 0,
-                'balance'           => $row['balance'] ?? 0,
+                'date'                => $formattedDate,
+                'invoice'             => $ref,
+                'invoice_no'          => $row['invoice_no'] ?? ($ref !== '-' ? $ref : null),
+                'invoice_url'         => $invoiceUrl,
+                'invoice_badges_html' => $invoiceBadgesHtml,
+                'invoices'            => $allocData['invoices'] ?? [],
+                'vendor_invoice_no'   => $row['vendor_invoice_no'] ?? null,
+                'source_type'         => $row['source_type'] ?? null,
+                'description'         => $desc,
+                'debit'               => $row['debit'] ?? 0,
+                'credit'              => $row['credit'] ?? 0,
+                'balance'             => $row['balance'] ?? 0,
             ];
         });
 
@@ -4251,6 +4347,313 @@ class ReportingController extends Controller
                 'total_returns' => array_sum(array_column($officerSummary, 'total_returns')),
                 'total_net' => array_sum(array_column($officerSummary, 'total_net')),
                 'total_commission' => array_sum(array_column($officerSummary, 'commission_amount')),
+            ]
+        ]);
+    }
+
+    /**
+     * Sale Return Detailed Report View
+     */
+    public function sale_return_report(Request $request)
+    {
+        $customers  = \App\Models\Customer::orderBy('customer_name')->get();
+        $products   = \App\Models\Product::orderBy('item_name')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
+        $brands     = \App\Models\Brand::orderBy('name')->get();
+        $warehouses = \App\Models\Warehouse::orderBy('warehouse_name')->get();
+
+        return view('admin_panel.reporting.sale_return_report', compact('customers', 'products', 'categories', 'brands', 'warehouses'));
+    }
+
+    /**
+     * Fetch Sale Return Detailed Report Data (AJAX)
+     */
+    public function fetchSaleReturnReport(Request $request)
+    {
+        $fromDate = $request->from_date;
+        $toDate   = $request->to_date;
+
+        // Multi-select filters
+        $customerIds = is_array($request->customer_id) ? $request->customer_id : ($request->customer_id && $request->customer_id !== 'all' ? [$request->customer_id] : []);
+        $productIds  = is_array($request->product_id) ? $request->product_id : ($request->product_id && $request->product_id !== 'all' ? [$request->product_id] : []);
+        $categoryIds = is_array($request->category_id) ? $request->category_id : ($request->category_id && $request->category_id !== 'all' ? [$request->category_id] : []);
+        $brandIds    = is_array($request->brand_id) ? $request->brand_id : ($request->brand_id && $request->brand_id !== 'all' ? [$request->brand_id] : []);
+        $warehouseId = $request->warehouse_id;
+
+        $customerIds = array_values(array_filter($customerIds, fn($v) => $v !== 'all' && !empty($v)));
+        $productIds  = array_values(array_filter($productIds, fn($v) => $v !== 'all' && !empty($v)));
+        $categoryIds = array_values(array_filter($categoryIds, fn($v) => $v !== 'all' && !empty($v)));
+        $brandIds    = array_values(array_filter($brandIds, fn($v) => $v !== 'all' && !empty($v)));
+
+        $query = DB::table('sale_return_items as sri')
+            ->join('sale_returns as sr', 'sri.sale_return_id', '=', 'sr.id')
+            ->leftJoin('customers as c', 'sr.customer_id', '=', 'c.id')
+            ->leftJoin('products as p', 'sri.product_id', '=', 'p.id')
+            ->leftJoin('sales as s', 'sr.sale_id', '=', 's.id')
+            ->leftJoin('warehouses as w', 'sri.warehouse_id', '=', 'w.id')
+            ->leftJoin('brands as b', 'p.brand_id', '=', 'b.id')
+            ->leftJoin('categories as cat', 'p.category_id', '=', 'cat.id')
+            ->select(
+                'sri.id as item_id',
+                'sr.id as return_id',
+                'sr.return_invoice',
+                'sr.return_date',
+                'sr.created_at as return_created_at',
+                'sr.sale_id',
+                's.invoice_no as original_invoice_no',
+                'sr.customer_id',
+                DB::raw("COALESCE(c.customer_name, 'Walking Customer') as customer_name"),
+                DB::raw("COALESCE(c.customer_id, 'N/A') as customer_code"),
+                'c.mobile as customer_mobile',
+                'c.province as customer_province',
+                'c.city as customer_city',
+                'c.area as customer_area',
+                'sri.product_id',
+                'sri.is_manual',
+                DB::raw("COALESCE(sri.product_name, p.item_name, 'Manual Item') as raw_product_name"),
+                DB::raw("COALESCE(p.item_code, 'MANUAL') as product_code"),
+                'sri.color as variant_data',
+                'sri.qty as returned_qty',
+                'sri.boxes as returned_boxes',
+                'sri.loose_pieces as returned_loose',
+                'sri.unit',
+                'sri.price as unit_price',
+                'sri.item_discount',
+                'sri.line_total',
+                'sr.remarks as return_remarks',
+                'sr.status as return_status',
+                DB::raw("COALESCE(w.warehouse_name, '-') as warehouse_name"),
+                DB::raw("COALESCE(b.name, '-') as brand_name"),
+                DB::raw("COALESCE(cat.name, '-') as category_name")
+            );
+
+        if ($fromDate) {
+            $query->whereDate(DB::raw("COALESCE(sr.return_date, sr.created_at)"), '>=', $fromDate);
+        }
+        if ($toDate) {
+            $query->whereDate(DB::raw("COALESCE(sr.return_date, sr.created_at)"), '<=', $toDate);
+        }
+        if (!empty($customerIds)) {
+            $query->whereIn('sr.customer_id', $customerIds);
+        }
+        if (!empty($productIds)) {
+            $query->whereIn('sri.product_id', $productIds);
+        }
+        if (!empty($categoryIds)) {
+            $query->whereIn('p.category_id', $categoryIds);
+        }
+        if (!empty($brandIds)) {
+            $query->whereIn('p.brand_id', $brandIds);
+        }
+        if ($warehouseId && $warehouseId !== 'all') {
+            $query->where(function($q) use ($warehouseId) {
+                $q->where('sri.warehouse_id', $warehouseId)
+                  ->orWhere('sr.warehouse_id', $warehouseId);
+            });
+        }
+
+        $pLoc = $request->province;
+        $cLoc = $request->city;
+        $aLoc = $request->area;
+
+        if ($pLoc && $pLoc !== 'all') {
+            $query->where('c.province', $pLoc);
+        }
+        if ($cLoc && $cLoc !== 'all') {
+            $query->where('c.city', $cLoc);
+        }
+        if ($aLoc && $aLoc !== 'all') {
+            $query->where('c.area', $aLoc);
+        }
+
+        $records = $query->orderBy(DB::raw("COALESCE(sr.return_date, sr.created_at)"), 'desc')
+                         ->orderBy('sr.id', 'desc')
+                         ->get();
+
+        $detailedItems = [];
+        $customerGroups = [];
+        $productGroups = [];
+
+        $totalPieces = 0;
+        $totalBoxes  = 0;
+        $totalAmount = 0;
+        $distinctInvoices  = [];
+        $distinctCustomers = [];
+        $distinctProducts  = [];
+
+        foreach ($records as $r) {
+            $returnDateFormatted = \Carbon\Carbon::parse($r->return_date ?: $r->return_created_at)->format('d M Y');
+            $qtyPcs = (float) $r->returned_qty;
+            $boxes  = (float) $r->returned_boxes;
+            $loose  = (float) $r->returned_loose;
+            $price  = (float) $r->unit_price;
+            $disc   = (float) $r->item_discount;
+            $total  = (float) $r->line_total;
+
+            $totalPieces += $qtyPcs;
+            $totalBoxes  += $boxes;
+            $totalAmount += $total;
+
+            $distinctInvoices[$r->return_id] = true;
+            if ($r->customer_id) $distinctCustomers[$r->customer_id] = true;
+            $prodKey = $r->product_id ?: ('m_' . md5($r->raw_product_name));
+            $distinctProducts[$prodKey] = true;
+
+            // Clean Variant Label Helper (no ugly empty separators)
+            $variantLabel = '';
+            if (!empty($r->variant_data)) {
+                $b64 = base64_decode($r->variant_data, true);
+                $vJson = ($b64 !== false && is_string($b64)) ? json_decode($b64, true) : json_decode($r->variant_data, true);
+                if (is_array($vJson)) {
+                    $vSize = $vJson['size'] ?? ($vJson['size_val'] ?? '');
+                    $vColor = $vJson['color'] ?? ($vJson['color_val'] ?? '');
+                    $vParts = array_filter([$vSize, $vColor], fn($v) => !empty($v) && trim($v) !== '-');
+                    if (!empty($vParts)) {
+                        $variantLabel = implode(' | ', $vParts);
+                    }
+                } elseif (is_string($r->variant_data) && trim($r->variant_data) !== '-' && trim($r->variant_data) !== '') {
+                    $variantLabel = trim($r->variant_data);
+                }
+            }
+
+            $displayProductName = $r->raw_product_name . ($variantLabel ? " ({$variantLabel})" : '');
+
+            // 1. Detailed Row
+            $detailedItems[] = [
+                'item_id' => $r->item_id,
+                'return_id' => $r->return_id,
+                'return_invoice' => $r->return_invoice,
+                'return_date' => $returnDateFormatted,
+                'sale_id' => $r->sale_id,
+                'original_invoice' => $r->original_invoice_no ?: '-',
+                'customer_id' => $r->customer_id,
+                'customer_code' => $r->customer_code,
+                'customer_name' => $r->customer_name,
+                'customer_mobile' => $r->customer_mobile ?: '-',
+                'location' => trim(implode(', ', array_filter([$r->customer_area, $r->customer_city, $r->customer_province]))),
+                'product_id' => $r->product_id,
+                'product_code' => $r->product_code,
+                'product_name' => $displayProductName,
+                'raw_name' => $r->raw_product_name,
+                'variant_label' => $variantLabel,
+                'brand_name' => $r->brand_name,
+                'category_name' => $r->category_name,
+                'warehouse_name' => $r->warehouse_name,
+                'qty_pcs' => $qtyPcs,
+                'boxes' => $boxes,
+                'loose' => $loose,
+                'unit' => $r->unit ?: 'Pcs',
+                'unit_price' => $price,
+                'item_discount' => $disc,
+                'line_total' => $total,
+                'remarks' => $r->return_remarks ?: '-',
+                'status' => $r->return_status ?: 'completed',
+            ];
+
+            // 2. Customer Aggregates
+            $cId = $r->customer_id ?: 0;
+            if (!isset($customerGroups[$cId])) {
+                $customerGroups[$cId] = [
+                    'customer_id' => $cId,
+                    'customer_code' => $r->customer_code,
+                    'customer_name' => $r->customer_name,
+                    'customer_mobile' => $r->customer_mobile ?: '-',
+                    'location' => trim(implode(', ', array_filter([$r->customer_area, $r->customer_city, $r->customer_province]))),
+                    'invoices' => [],
+                    'total_invoices_count' => 0,
+                    'total_pieces' => 0,
+                    'total_boxes' => 0,
+                    'total_amount' => 0,
+                    'items' => [],
+                ];
+            }
+            $customerGroups[$cId]['invoices'][$r->return_id] = true;
+            $customerGroups[$cId]['total_pieces'] += $qtyPcs;
+            $customerGroups[$cId]['total_boxes']  += $boxes;
+            $customerGroups[$cId]['total_amount'] += $total;
+            $customerGroups[$cId]['items'][] = [
+                'return_invoice' => $r->return_invoice,
+                'return_date' => $returnDateFormatted,
+                'product_name' => $displayProductName,
+                'qty_pcs' => $qtyPcs,
+                'unit_price' => $price,
+                'line_total' => $total,
+                'warehouse' => $r->warehouse_name,
+                'remarks' => $r->return_remarks ?: '-'
+            ];
+
+            // 3. Product Aggregates
+            $pKey = $r->product_id ? ($r->product_id . '_' . $variantLabel) : ('m_' . md5($displayProductName));
+            if (!isset($productGroups[$pKey])) {
+                $productGroups[$pKey] = [
+                    'product_id' => $r->product_id,
+                    'product_code' => $r->product_code,
+                    'product_name' => $displayProductName,
+                    'base_name' => $r->raw_product_name,
+                    'variant_label' => $variantLabel,
+                    'brand_name' => $r->brand_name,
+                    'category_name' => $r->category_name,
+                    'invoices' => [],
+                    'total_invoices_count' => 0,
+                    'total_pieces' => 0,
+                    'total_boxes' => 0,
+                    'total_amount' => 0,
+                    'customers' => [],
+                ];
+            }
+            $productGroups[$pKey]['invoices'][$r->return_id] = true;
+            $productGroups[$pKey]['total_pieces'] += $qtyPcs;
+            $productGroups[$pKey]['total_boxes']  += $boxes;
+            $productGroups[$pKey]['total_amount'] += $total;
+
+            $custName = $r->customer_name;
+            if (!isset($productGroups[$pKey]['customers'][$custName])) {
+                $productGroups[$pKey]['customers'][$custName] = 0;
+            }
+            $productGroups[$pKey]['customers'][$custName] += $qtyPcs;
+        }
+
+        // Finalize Customer Summaries
+        $customerSummaryList = [];
+        foreach ($customerGroups as $cg) {
+            $cg['total_invoices_count'] = count($cg['invoices']);
+            unset($cg['invoices']);
+            $customerSummaryList[] = $cg;
+        }
+        usort($customerSummaryList, fn($a, $b) => $b['total_amount'] <=> $a['total_amount']);
+
+        // Finalize Product Summaries
+        $productSummaryList = [];
+        foreach ($productGroups as $pg) {
+            $pg['total_invoices_count'] = count($pg['invoices']);
+            unset($pg['invoices']);
+            $pg['avg_price'] = $pg['total_pieces'] > 0 ? round($pg['total_amount'] / $pg['total_pieces'], 2) : 0;
+
+            // Transform customer list to formatted string
+            $custArr = [];
+            foreach ($pg['customers'] as $cName => $cQty) {
+                $custArr[] = "{$cName} ({$cQty})";
+            }
+            $pg['customers_display'] = implode(', ', $custArr);
+            unset($pg['customers']);
+
+            $productSummaryList[] = $pg;
+        }
+        usort($productSummaryList, fn($a, $b) => $b['total_amount'] <=> $a['total_amount']);
+
+        return response()->json([
+            'success' => true,
+            'detailed_items' => $detailedItems,
+            'customer_summary' => $customerSummaryList,
+            'product_summary' => $productSummaryList,
+            'summary' => [
+                'total_returns' => count($distinctInvoices),
+                'total_customers' => count($distinctCustomers),
+                'total_products' => count($distinctProducts),
+                'total_pieces' => number_format($totalPieces, 2),
+                'total_boxes' => number_format($totalBoxes, 2),
+                'total_amount' => number_format($totalAmount, 2),
+                'raw_total_amount' => $totalAmount,
             ]
         ]);
     }

@@ -744,12 +744,13 @@ class VoucherController extends Controller
                         \Log::info('V2 Voucher Created Successfully.');
 
                         // ✅ Also update CustomerLedger for correct balance display on form
+                        $customerLedgerEntry = null;
                         if (($vType == 'customer' || $vType == 'walkin') && $totalAmt > 0) {
                             $latestLedger = CustomerLedger::where('customer_id', $request->vendor_id)->latest()->first();
                             $prevBal = $latestLedger ? $latestLedger->closing_balance : (
                                 \App\Models\Customer::find($request->vendor_id)->opening_balance ?? 0
                             );
-                            CustomerLedger::create([
+                            $customerLedgerEntry = CustomerLedger::create([
                                 'customer_id'      => $request->vendor_id,
                                 'admin_or_user_id' => auth()->id(),
                                 'previous_balance' => $prevBal,
@@ -814,6 +815,7 @@ class VoucherController extends Controller
                         }
                     }
 
+                    $allocSummaryParts = [];
                     foreach ($allocationsToSave as $alloc) {
                         $sale = \App\Models\Sale::find($alloc['sale_id']);
                         if ($sale) {
@@ -828,18 +830,38 @@ class VoucherController extends Controller
                             $sale->change = ($sale->cash + ($sale->card ?? 0)) - (float) $sale->total_net;
                             $sale->save();
 
+                            $invNo = $sale->invoice_no ?: ('INV-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT));
+                            $allocSummaryParts[] = $invNo . ': Rs ' . number_format($allocAmt, 2);
+
                             \App\Models\VoucherInvoiceAllocation::create([
                                 'voucher_type'       => 'receipt',
                                 'receipt_voucher_id' => $rec->id,
                                 'voucher_master_id'  => isset($v2Master) && $v2Master ? $v2Master->id : null,
                                 'sale_id'            => $sale->id,
-                                'invoice_no'         => $sale->invoice_no ?: ('INV-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT)),
+                                'invoice_no'         => $invNo,
                                 'invoice_date'       => $sale->created_at ? $sale->created_at->format('Y-m-d') : null,
                                 'invoice_amount'     => $sale->total_net,
                                 'previous_due'       => $prevDue,
                                 'allocated_amount'   => $allocAmt,
                                 'remaining_due'      => $newDue,
                             ]);
+                        }
+                    }
+
+                    if (!empty($allocSummaryParts)) {
+                        $allocSummaryStr = ' (Against ' . implode(', ', $allocSummaryParts) . ')';
+                        if (isset($v2Master) && $v2Master) {
+                            $v2Master->remarks = trim(($request->remarks ? $request->remarks . ' ' : '') . "(Ref: $rvid)" . $allocSummaryStr);
+                            $v2Master->save();
+
+                            \App\Models\JournalEntry::where('source_type', \App\Models\VoucherMaster::class)
+                                ->where('source_id', $v2Master->id)
+                                ->where('credit', '>', 0)
+                                ->update(['description' => 'Receipt from ' . $request->vendor_type . $allocSummaryStr]);
+                        }
+                        if ($customerLedgerEntry) {
+                            $customerLedgerEntry->description = 'Receipt Voucher ' . $rvid . $allocSummaryStr;
+                            $customerLedgerEntry->save();
                         }
                     }
                 }
@@ -1035,6 +1057,7 @@ class VoucherController extends Controller
             /**
              * STEP 2: Legacy Table Destinations (Parties) - Update polymorphic ledger balances (Closing balances)
              */
+            $vendorLedgerEntry = null;
             if ($request->vendor_id && $request->amount) {
                 foreach ($request->vendor_id as $index => $partyId) {
                     $type = $request->vendor_type[$index] ?? null;
@@ -1047,12 +1070,13 @@ class VoucherController extends Controller
                     if ($type === 'vendor') {
                         $ledger = VendorLedger::where('vendor_id', $partyId)->latest()->first();
                         $bal = $ledger ? $ledger->closing_balance : 0;
-                        VendorLedger::create([
+                        $vendorLedgerEntry = VendorLedger::create([
                             'vendor_id'         => $partyId,
                             'admin_or_user_id'  => auth()->id(),
                             'opening_balance'   => 0,
                             'previous_balance'  => $bal,
                             'closing_balance'   => $bal - $rowAmount, // ✅ MINUS: payment reduces vendor balance
+                            'description'       => 'Payment Voucher ' . $pvid,
                         ]);
 
                     } elseif ($type === 'customer' || $type === 'walkin') {
@@ -1128,6 +1152,7 @@ class VoucherController extends Controller
                         }
                     }
 
+                    $allocSummaryParts = [];
                     foreach ($allocationsToSave as $alloc) {
                         $purchase = \App\Models\Purchase::find($alloc['purchase_id']);
                         if ($purchase) {
@@ -1140,18 +1165,39 @@ class VoucherController extends Controller
                             $purchase->due_amount = $newDue;
                             $purchase->save();
 
+                            $billNo = $purchase->invoice_no ?: ($purchase->purchase_order_no ?: ('PUR-' . str_pad($purchase->id, 4, '0', STR_PAD_LEFT)));
+                            $allocSummaryParts[] = $billNo . ': Rs ' . number_format($allocAmt, 2);
+
                             \App\Models\VoucherInvoiceAllocation::create([
                                 'voucher_type'       => 'payment',
                                 'payment_voucher_id' => $payment->id,
                                 'voucher_master_id'  => isset($v2Master) && $v2Master ? $v2Master->id : null,
                                 'purchase_id'        => $purchase->id,
-                                'invoice_no'         => $purchase->invoice_no ?: $purchase->purchase_order_no,
+                                'invoice_no'         => $billNo,
                                 'invoice_date'       => $purchase->purchase_date ? $purchase->purchase_date->format('Y-m-d') : null,
                                 'invoice_amount'     => $purchase->net_amount,
                                 'previous_due'       => $prevDue,
                                 'allocated_amount'   => $allocAmt,
                                 'remaining_due'      => $newDue,
                             ]);
+                        }
+                    }
+
+                    if (!empty($allocSummaryParts)) {
+                        $allocSummaryStr = ' (Against ' . implode(', ', $allocSummaryParts) . ')';
+                        if (isset($v2Master) && $v2Master) {
+                            $v2Master->remarks = trim(($request->remarks ? $request->remarks . ' ' : '') . "(Ref: $pvid)" . $allocSummaryStr);
+                            $v2Master->save();
+
+                            $pType = is_array($request->vendor_type) ? ($request->vendor_type[0] ?? 'vendor') : ($request->vendor_type ?? 'vendor');
+                            \App\Models\JournalEntry::where('source_type', \App\Models\VoucherMaster::class)
+                                ->where('source_id', $v2Master->id)
+                                ->where('debit', '>', 0)
+                                ->update(['description' => 'Payment to ' . $pType . $allocSummaryStr]);
+                        }
+                        if (isset($vendorLedgerEntry) && $vendorLedgerEntry) {
+                            $vendorLedgerEntry->description = 'Payment Voucher ' . $pvid . $allocSummaryStr;
+                            $vendorLedgerEntry->save();
                         }
                     }
                 }

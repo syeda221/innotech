@@ -325,8 +325,8 @@
                 <div class="info-box">
                     <div class="info-box-header">Reference</div>
                     <div><span class="info-label">Inv #:</span> <strong>{{ $purchase->invoice_no ?: ('PUR-' . str_pad($purchase->id, 3, '0', STR_PAD_LEFT)) }}</strong></div>
-                    <div><span class="info-label">Date:</span> {{ \Carbon\Carbon::parse($purchase->purchase_date)->format('d/m/Y') }}</div>
-                    <div><span class="info-label">Vendor Ref #:</span> <strong>{{ $purchase->purchase_order_no ?: ($purchase->note ?: '—') }}</strong></div>
+                    <div><span class="info-label">Date:</span> {{ $purchase->purchase_date ? \Carbon\Carbon::parse($purchase->purchase_date)->format('d/M/Y') : '-' }}</div>
+                    <div><span class="info-label">Vendor Inv #:</span> <strong>{{ $purchase->purchase_order_no ?: ($purchase->note ?: '—') }}</strong></div>
                 </div>
             </div>
         </div>

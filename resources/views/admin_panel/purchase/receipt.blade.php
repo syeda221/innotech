@@ -136,10 +136,10 @@
 
     <div class="info-row">
         <span>Inv #: {{ $purchase->invoice_no ?: ('PUR-' . str_pad($purchase->id, 3, '0', STR_PAD_LEFT)) }}</span>
-        <span>{{ \Carbon\Carbon::parse($purchase->purchase_date)->format('d/m/Y') }}</span>
+        <span>{{ $purchase->purchase_date ? \Carbon\Carbon::parse($purchase->purchase_date)->format('d/M/Y') : '-' }}</span>
     </div>
     <div class="info-row">
-        <span>Vendor Ref#: {{ $purchase->purchase_order_no ?: ($purchase->note ?: '—') }}</span>
+        <span>Vendor Inv#: {{ $purchase->purchase_order_no ?: ($purchase->note ?: '—') }}</span>
     </div>
     <div class="info-row">
         <span>Vendor: {{ Str::limit($purchase->vendor->name ?? 'N/A', 15) }}</span>

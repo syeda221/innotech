@@ -4,9 +4,9 @@
         <td class="ps-3 text-center" style="width: 40px; vertical-align: middle;">
             <input type="checkbox" class="select-purchase-row" value="{{ $purchase->id }}" style="cursor: pointer; width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin: 0 auto !important;">
         </td>
-        <td class="fw-bold text-muted">#{{ $purchase->id }}</td>
-        <td class="text-nowrap">
-            {{ \Carbon\Carbon::parse($purchase->purchase_date)->format('d/m/Y') }}
+        <td class="fw-bold text-muted serial-number-cell">{{ $loop->iteration }}</td>
+        <td class="text-nowrap" data-order="{{ $purchase->purchase_date ? \Carbon\Carbon::parse($purchase->purchase_date)->format('Y-m-d') : '' }}">
+            {{ $purchase->purchase_date ? \Carbon\Carbon::parse($purchase->purchase_date)->format('d/M/Y') : '-' }}
         </td>
         <td class="font-monospace text-dark">{{ $purchase->invoice_no }}</td>
         <td class="font-monospace text-primary fw-medium">{{ $purchase->purchase_order_no ?? '-' }}</td>

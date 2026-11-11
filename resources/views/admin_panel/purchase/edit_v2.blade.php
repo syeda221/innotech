@@ -401,7 +401,7 @@
                             <input type="text" class="form-control input-readonly" name="invoice_no" value="{{ $nextInvoice ?? 'NEW' }}" readonly>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold mb-1 text-muted small">Vendor Ref #</label>
+                            <label class="form-label fw-bold mb-1 text-muted small">Vendor Inv #</label>
                             <input type="text" class="form-control" name="purchase_order_no" placeholder="Vendor Ref #" value="{{ $purchase->purchase_order_no ?? '' }}">
                         </div>
                         <div class="col-md-3">

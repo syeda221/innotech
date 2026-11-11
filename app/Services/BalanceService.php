@@ -167,6 +167,8 @@ class BalanceService
         $transactions = $entries->map(function ($entry) use (&$runningBalance) {
             $runningBalance += ($entry->debit - $entry->credit);
 
+            $allocData = $this->getVoucherAllocationsData($entry->source_type, $entry->source_id);
+
             return [
                 'id' => $entry->id,
                 'date' => $entry->entry_date,
@@ -176,6 +178,7 @@ class BalanceService
                 'balance' => $runningBalance,
                 'source_type' => $entry->source_type,
                 'source_id' => $entry->source_id,
+                'alloc_data' => $allocData,
             ];
         });
 
@@ -466,11 +469,21 @@ class BalanceService
                 ->get();
 
             foreach ($custEntries as $entry) {
+                $desc = '[Sale/Cust] ' . $entry->description;
+                $refNo = $entry->source_type ? (class_basename($entry->source_type) . ' #' . $entry->source_id) : '-';
+                $allocData = $this->getVoucherAllocationsData($entry->source_type, $entry->source_id);
+                if (!empty($allocData['summary']) && !str_contains($desc, 'Against ')) {
+                    $desc .= ' ' . $allocData['summary'];
+                }
+                if (!empty($allocData['ref_text'])) {
+                    $refNo = $allocData['ref_text'];
+                }
+
                 $allRows->push([
                     'date'        => $entry->entry_date,
                     'type'        => 'Customer',
-                    'ref_no'      => $entry->source_type ? (class_basename($entry->source_type) . ' #' . $entry->source_id) : '-',
-                    'description' => '[Sale/Cust] ' . $entry->description,
+                    'ref_no'      => $refNo,
+                    'description' => $desc,
                     'debit'       => (float) $entry->debit,   // Dr = Sale (Receivable increases)
                     'credit'      => (float) $entry->credit,  // Cr = Receipt/Return (Receivable decreases)
                     'sort_date'   => $entry->entry_date,
@@ -486,11 +499,23 @@ class BalanceService
                 // In Vendor ledger:
                 // tx['credit'] = Purchase (Payable increases) -> In net combined view, this is Credit (Cr)
                 // tx['debit']  = Payment/Return (Payable decreases) -> In net combined view, this is Debit (Dr)
+                $desc = '[Purchase/Vend] ' . $tx['description'];
+                $refNo = $tx['invoice_no'] ?: ($tx['source_type'] ? ($tx['source_type'] . ' #' . $tx['source_id']) : '-');
+                if (!empty($tx['source_type']) && !empty($tx['source_id'])) {
+                    $allocData = $this->getVoucherAllocationsData($tx['source_type'], $tx['source_id']);
+                    if (!empty($allocData['summary']) && !str_contains($desc, 'Against ')) {
+                        $desc .= ' ' . $allocData['summary'];
+                    }
+                    if (!empty($allocData['ref_text'])) {
+                        $refNo = $allocData['ref_text'];
+                    }
+                }
+
                 $allRows->push([
                     'date'        => $tx['date'],
                     'type'        => 'Vendor',
-                    'ref_no'      => $tx['invoice_no'] ?: ($tx['source_type'] ? ($tx['source_type'] . ' #' . $tx['source_id']) : '-'),
-                    'description' => '[Purchase/Vend] ' . $tx['description'],
+                    'ref_no'      => $refNo,
+                    'description' => $desc,
                     'debit'       => (float) $tx['debit'],  // Dr = Payment to vendor or Purch Return (We reduce what we owe)
                     'credit'      => (float) $tx['credit'], // Cr = Purchase (We owe them)
                     'sort_date'   => $tx['date'],
@@ -832,6 +857,94 @@ class BalanceService
         }
 
         return $account->id;
+    }
+
+    /**
+     * Get allocations and formatted summary for a voucher source (Receipt / Payment)
+     */
+    public function getVoucherAllocationsData($sourceType, $sourceId): array
+    {
+        $data = [
+            'has_allocations' => false,
+            'summary' => '',
+            'invoices' => [],
+            'ref_text' => null,
+            'first_url' => null,
+            'badges_html' => '',
+        ];
+
+        if (empty($sourceType) || empty($sourceId)) {
+            return $data;
+        }
+
+        try {
+            $allocs = collect();
+            if ($sourceType === \App\Models\VoucherMaster::class || $sourceType === 'VoucherMaster' || $sourceType === 'App\Models\VoucherMaster') {
+                $allocs = \App\Models\VoucherInvoiceAllocation::where('voucher_master_id', $sourceId)->get();
+                if ($allocs->isEmpty()) {
+                    $vm = \App\Models\VoucherMaster::find($sourceId);
+                    if ($vm && preg_match('/Ref:\s*(RV|PV)-(\d+)/i', $vm->remarks ?? '', $m)) {
+                        $refId = (int)$m[2];
+                        if (strtoupper($m[1]) === 'RV') {
+                            $allocs = \App\Models\VoucherInvoiceAllocation::where('receipt_voucher_id', $refId)->get();
+                        } else {
+                            $allocs = \App\Models\VoucherInvoiceAllocation::where('payment_voucher_id', $refId)->get();
+                        }
+                    }
+                }
+            } elseif ($sourceType === \App\Models\ReceiptVoucher::class || $sourceType === 'ReceiptVoucher' || $sourceType === 'App\Models\ReceiptVoucher' || $sourceType === \App\Models\ReceiptsVoucher::class) {
+                $allocs = \App\Models\VoucherInvoiceAllocation::where('receipt_voucher_id', $sourceId)->get();
+            } elseif ($sourceType === \App\Models\PaymentVoucher::class || $sourceType === 'PaymentVoucher' || $sourceType === 'App\Models\PaymentVoucher') {
+                $allocs = \App\Models\VoucherInvoiceAllocation::where('payment_voucher_id', $sourceId)->get();
+            }
+
+            if ($allocs->isNotEmpty()) {
+                $summaryParts = [];
+                $invNumbers = [];
+                $badges = [];
+
+                foreach ($allocs as $al) {
+                    $num = $al->invoice_no;
+                    if (!$num) {
+                        $num = $al->sale_id ? ('INV-' . str_pad($al->sale_id, 4, '0', STR_PAD_LEFT)) : ($al->purchase_id ? ('PUR-' . str_pad($al->purchase_id, 4, '0', STR_PAD_LEFT)) : 'REF');
+                    }
+                    $invNumbers[] = $num;
+                    $summaryParts[] = $num . ': Rs ' . number_format((float)$al->allocated_amount, 2);
+
+                    $url = null;
+                    if ($al->sale_id) {
+                        $url = route('sales.invoice', $al->sale_id);
+                    } elseif ($al->purchase_id) {
+                        $url = route('purchase.invoice', $al->purchase_id);
+                    }
+
+                    if (!$data['first_url'] && $url) {
+                        $data['first_url'] = $url;
+                    }
+
+                    $data['invoices'][] = [
+                        'invoice_no' => $num,
+                        'amount' => (float)$al->allocated_amount,
+                        'url' => $url,
+                    ];
+
+                    if ($url) {
+                        $badges[] = '<a href="' . $url . '" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none py-1 px-2 shadow-sm me-1 mb-1 d-inline-block" title="View & Print Invoice" style="cursor: pointer;"><i class="fas fa-file-invoice me-1"></i>' . e($num) . ' <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>';
+                    } else {
+                        $badges[] = '<span class="badge bg-light text-primary border font-monospace me-1 mb-1 d-inline-block">' . e($num) . '</span>';
+                    }
+                }
+
+                $data['has_allocations'] = true;
+                $data['summary'] = '(Against ' . implode(', ', $summaryParts) . ')';
+                $data['ref_text'] = implode(', ', $invNumbers);
+                $data['badges_html'] = implode(' ', $badges);
+            }
+        } catch (\Exception $e) {
+            \Log::error('getVoucherAllocationsData error: ' . $e->getMessage());
+        }
+
+        return $data;
     }
 
     /**

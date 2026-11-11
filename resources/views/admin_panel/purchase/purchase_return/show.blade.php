@@ -219,7 +219,7 @@
                     <div class="info-box-header">Return Reference</div>
                     <div><span class="info-label">Return #:</span> <strong>{{ $return->return_invoice }}</strong></div>
                     <div><span class="info-label">Date:</span>
-                        {{ \Carbon\Carbon::parse($return->return_date)->format('d/m/Y') }}</div>
+                        {{ $return->return_date ? \Carbon\Carbon::parse($return->return_date)->format('d/M/Y') : '-' }}</div>
                     <div><span class="info-label">Warehouse:</span> {{ $return->warehouse->warehouse_name ?? 'Main' }}
                     </div>
                 </div>

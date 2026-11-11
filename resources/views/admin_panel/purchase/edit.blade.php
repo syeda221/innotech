@@ -497,10 +497,10 @@
                         <input type="text" class="form-control text-center fw-bold input-readonly" name="invoice_no" value="{{ $purchase->invoice_no }}" readonly style="width: 140px; height: 38px;">
                     </div>
 
-                    {{-- Vendor Ref # --}}
+                    {{-- Vendor Inv # --}}
                     <div class="d-flex align-items-center gap-2">
-                        <label class="field-label mb-0 fw-bold text-secondary">Vendor Ref #:</label>
-                        <input type="text" class="form-control text-center fw-bold" name="purchase_order_no" placeholder="Vendor Ref #" value="{{ $purchase->purchase_order_no }}" style="width: 140px; height: 38px;">
+                        <label class="field-label mb-0 fw-bold text-secondary">Vendor Inv #:</label>
+                        <input type="text" class="form-control text-center fw-bold" name="purchase_order_no" placeholder="Vendor Inv #" value="{{ $purchase->purchase_order_no }}" style="width: 140px; height: 38px;">
                     </div>
 
                     {{-- Date --}}

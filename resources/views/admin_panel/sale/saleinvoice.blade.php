@@ -1,3 +1,6 @@
+@php
+    $isQuotation = (($sale->sale_status ?? '') === 'quotation' || !empty($isQuotation));
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 
@@ -643,6 +646,72 @@
             color: var(--primary-navy) !important;
             font-size: 13px;
         }
+
+        @if(!empty($isQuotation))
+        /* Spacious & Elegant Typography for Quotations (Uncongested 5-Column Layout) */
+        .header-meta-grid {
+            border-spacing: 14px 0;
+            margin-bottom: 12px;
+        }
+        .header-meta-card .card-head {
+            padding: 6px 12px;
+            font-size: 10.5px;
+        }
+        .header-meta-card .card-body-meta {
+            padding: 8px 12px;
+        }
+        .meta-table td {
+            padding: 3.5px 0;
+            font-size: 10.5px;
+        }
+        .invoice-table {
+            margin-top: 10px;
+        }
+        .invoice-table th {
+            padding: 8px 10px;
+            font-size: 10.5px;
+            letter-spacing: 0.6px;
+        }
+        .invoice-table td {
+            padding: 8px 10px;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .invoice-table tfoot td {
+            padding: 8px 10px;
+            font-size: 11px;
+        }
+        .item-main-title {
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+        .invoice-bottom-grid {
+            margin-top: 14px;
+            gap: 16px;
+        }
+        .totals-card .card-head {
+            padding: 6px 12px;
+            font-size: 10.5px;
+        }
+        .totals-table td {
+            padding: 5px 10px;
+            font-size: 11px;
+        }
+        .totals-table tr.total-row td {
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+        .totals-table tr.total-row td.val {
+            font-size: 13.5px;
+        }
+        .terms-card {
+            padding: 8px 12px;
+            margin-bottom: 10px;
+        }
+        .signature-section {
+            margin-top: 18px;
+        }
+        @endif
 
         /* Thermal Receipt (Hidden on Screen) */
         .receipt-container {
@@ -1404,7 +1473,13 @@
         <table class="invoice-table">
             <thead>
                 <tr>
-                    @if($showTaxColumns)
+                    @if(!empty($isQuotation))
+                        <th style="width: 6%;" class="text-center">Sr#</th>
+                        <th class="text-start">Product Name</th>
+                        <th style="width: 15%;" class="text-end">Rate</th>
+                        <th style="width: 12%;" class="text-center">Qty</th>
+                        <th style="width: 18%;" class="text-end">Amount</th>
+                    @elseif($showTaxColumns)
                         <th style="width: 4%;" class="text-center">S.No</th>
                         <th class="text-start">Description of Product</th>
                         @if($showBatchCol)
@@ -1541,96 +1616,121 @@
                             @endif
                         </td>
 
-                        @if($showBatchCol)
-                        <td class="text-center">
-                            @if(!empty($batchNo))
-                                <span class="badge bg-light text-dark border">{{ $batchNo }}</span>
-                            @elseif(!empty($itemSerialsList))
-                                <span class="badge bg-light text-dark border">S/N</span>
-                            @else
-                                <span class="text-muted">-</span>
+                        @if(!empty($isQuotation))
+                            <td class="text-end">
+                                {{ number_format($itemPrice, 2) }}
+                            </td>
+                            <td class="text-center fw-bold">
+                                {{ $itemQty == (int)$itemQty ? (int)$itemQty : number_format($itemQty, 2) }}
+                            </td>
+                            <td class="text-end fw-bold">
+                                {{ number_format($itemGross, 2) }}
+                            </td>
+                        @else
+                            @if($showBatchCol)
+                            <td class="text-center">
+                                @if(!empty($batchNo))
+                                    <span class="badge bg-light text-dark border">{{ $batchNo }}</span>
+                                @elseif(!empty($itemSerialsList))
+                                    <span class="badge bg-light text-dark border">S/N</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             @endif
-                        </td>
-                        @endif
 
-                        <td class="text-center fw-bold">
-                            {{ $itemQty == (int)$itemQty ? (int)$itemQty : number_format($itemQty, 2) }}
-                        </td>
-
-                        <td class="text-end">
-                            {{ number_format($itemPrice, 2) }}
-                        </td>
-
-                        <td class="text-end">
-                            {{ number_format($itemGross, 2) }}
-                        </td>
-
-                        @if($showDiscCol)
-                        <td class="text-end">
-                            {{ $discPct > 0 ? number_format($discPct, 2).'%' : '0.00' }}
-                        </td>
-                        @endif
-
-                        @if($showTaxColumns)
-                            <td class="text-end">
-                                {{ number_format($exclGst, 2) }}
+                            <td class="text-center fw-bold">
+                                {{ $itemQty == (int)$itemQty ? (int)$itemQty : number_format($itemQty, 2) }}
                             </td>
 
                             <td class="text-end">
-                                {{ number_format($salesTax, 2) }}
+                                {{ number_format($itemPrice, 2) }}
                             </td>
 
                             <td class="text-end">
-                                {{ number_format($furtherTax, 2) }}
+                                {{ number_format($itemGross, 2) }}
+                            </td>
+
+                            @if($showDiscCol)
+                            <td class="text-end">
+                                {{ $discPct > 0 ? number_format($discPct, 2).'%' : '0.00' }}
+                            </td>
+                            @endif
+
+                            @if($showTaxColumns)
+                                <td class="text-end">
+                                    {{ number_format($exclGst, 2) }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ number_format($salesTax, 2) }}
+                                </td>
+
+                                <td class="text-end">
+                                    {{ number_format($furtherTax, 2) }}
+                                </td>
+                            @endif
+
+                            <td class="text-end fw-bold">
+                                {{ number_format($netAmt, 2) }}
                             </td>
                         @endif
-
-                        <td class="text-end fw-bold">
-                            {{ number_format($netAmt, 2) }}
-                        </td>
                     </tr>
                 @endforeach
             </tbody>
 
             <tfoot>
                 <tr>
-                    <td colspan="{{ $showBatchCol ? 3 : 2 }}" class="text-end fw-bold">
-                        TOTAL:
-                    </td>
+                    @if(!empty($isQuotation))
+                        <td colspan="2" class="text-end fw-bold">
+                            TOTAL:
+                        </td>
+                        <td class="text-end fw-bold"></td>
+                        <td class="text-center fw-bold">
+                            {{ $sumTotQty == (int)$sumTotQty ? (int)$sumTotQty : number_format($sumTotQty, 2) }}
+                        </td>
+                        <td class="text-end fw-bold">
+                            Rs. {{ number_format($sumGrossAmt, 2) }}
+                        </td>
+                    @else
+                        <td colspan="{{ $showBatchCol ? 3 : 2 }}" class="text-end fw-bold">
+                            TOTAL:
+                        </td>
 
-                    <td class="text-center fw-bold">
-                        {{ $sumTotQty == (int)$sumTotQty ? (int)$sumTotQty : number_format($sumTotQty, 2) }}
-                    </td>
+                        <td class="text-center fw-bold">
+                            {{ $sumTotQty == (int)$sumTotQty ? (int)$sumTotQty : number_format($sumTotQty, 2) }}
+                        </td>
 
-                    <td class="text-end fw-bold"></td>
+                        <td class="text-end fw-bold"></td>
 
-                    <td class="text-end fw-bold">
-                        {{ number_format($sumGrossAmt, 2) }}
-                    </td>
+                        <td class="text-end fw-bold">
+                            {{ number_format($sumGrossAmt, 2) }}
+                        </td>
 
-                    @if($showDiscCol)
-                    <td class="text-end fw-bold">
-                        0.00
-                    </td>
+                        @if($showDiscCol)
+                        <td class="text-end fw-bold">
+                            0.00
+                        </td>
+                        @endif
+
+                        @if($showTaxColumns)
+                            <td class="text-end fw-bold">
+                                {{ number_format($sumExclGst, 2) }}
+                            </td>
+
+                            <td class="text-end fw-bold">
+                                {{ number_format($sumSalesTax, 2) }}
+                            </td>
+
+                            <td class="text-end fw-bold">
+                                {{ number_format($sumFurtherTax, 2) }}
+                            </td>
+                        @endif
+
+                        <td class="text-end fw-bold">
+                            {{ number_format($sumNetTotal, 2) }}
+                        </td>
                     @endif
-
-                    @if($showTaxColumns)
-                        <td class="text-end fw-bold">
-                            {{ number_format($sumExclGst, 2) }}
-                        </td>
-
-                        <td class="text-end fw-bold">
-                            {{ number_format($sumSalesTax, 2) }}
-                        </td>
-
-                        <td class="text-end fw-bold">
-                            {{ number_format($sumFurtherTax, 2) }}
-                        </td>
-                    @endif
-
-                    <td class="text-end fw-bold">
-                        {{ number_format($sumNetTotal, 2) }}
-                    </td>
                 </tr>
             </tfoot>
         </table>
@@ -1672,7 +1772,7 @@
             }
         @endphp
 
-        @if($exchangeReturn && $exchangeReturn->items->count() > 0)
+        @if(!$isQuotation && $exchangeReturn && $exchangeReturn->items->count() > 0)
             <div class="returns-wrapper">
                 <div class="returns-header">
                     <i class="fas fa-undo-alt"></i> Returned Items (Exchange)
@@ -1832,7 +1932,7 @@
 
                 <div class="totals-card">
                     <div class="card-head">
-                        <i class="fas fa-calculator"></i> Invoice Summary
+                        <i class="fas fa-calculator"></i> {{ $isQuotation ? 'Quotation Summary' : 'Invoice Summary' }}
                     </div>
 
                     <table class="totals-table">
@@ -1840,15 +1940,40 @@
                             $grossTotal = collect($saleItems)->sum('total');
                             $totalDisc = collect($saleItems)->sum('discount_amount');
                             $extraDisc = (float)($sale->total_extradiscount ?? 0);
-                            $netBill = $sale->total_net;
+                            $netBill = (float)($sale->total_net ?? 0);
                             $paidAmount = (float)($sale->cash ?? 0);
 
                             $sumExclusiveGst = (float)($sale->total_exclusive_gst ?? collect($saleItems)->sum('exclusive_gst_amount'));
                             $sumSalesTax = (float)($sale->total_sales_tax ?? collect($saleItems)->sum('sales_tax_amount'));
                             $sumFurtherTax = (float)($sale->total_further_tax ?? collect($saleItems)->sum('further_tax_amount'));
 
-                            $finalPayable = $netBill - $exchangeReturnedAmount;
+                            $finalPayable = $isQuotation ? (float)$sumGrossAmt : ($netBill - (float)$exchangeReturnedAmount);
                         @endphp
+
+                        @if ($isQuotation)
+                            <tr>
+                                <td class="lbl">Total Items</td>
+                                <td class="val">{{ count($saleItems) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Total Quantity</td>
+                                <td class="val">{{ $sumTotQty == (int)$sumTotQty ? (int)$sumTotQty : number_format($sumTotQty, 2) }}</td>
+                            </tr>
+                            @if ($sale->freight_charges > 0)
+                                <tr>
+                                    <td class="lbl">Freight Charges {{ $sale->freight_type === 'add' ? '(+)' : '(-)' }}</td>
+                                    <td class="val">{{ $sale->freight_type === 'add' ? '+' : '-' }} {{ number_format($sale->freight_charges, 2) }}</td>
+                                </tr>
+                            @endif
+                            <tr class="total-row">
+                                <td class="lbl">
+                                    GRAND TOTAL
+                                </td>
+                                <td class="val">
+                                    Rs. {{ number_format($sumGrossAmt + ($sale->freight_charges > 0 && $sale->freight_type === 'add' ? $sale->freight_charges : 0), 2) }}
+                                </td>
+                            </tr>
+                        @else
 
                         @if ($totalCartonsCount > 0)
                             <tr>
@@ -1944,6 +2069,7 @@
                                     Rs. {{ number_format(abs($totalClosingBal), 2) }} {{ $totalClosingBal >= 0 ? 'Dr' : 'Cr' }}
                                 </td>
                             </tr>
+                        @endif
                         @endif
                     </table>
                 </div>
@@ -2166,7 +2292,7 @@
         </table>
 
         <!-- Returned Items (Thermal) -->
-        @if($exchangeReturn && $exchangeReturn->items->count() > 0)
+        @if(!$isQuotation && $exchangeReturn && $exchangeReturn->items->count() > 0)
             <div class="divider" style="border-top: 1px dashed #000; margin: 4px 0;"></div>
             <div style="font-weight: bold; font-size: 11px; margin-bottom: 2px; color: #000;">Returned Items:</div>
             <table class="items-table" style="margin-bottom: 4px;">

@@ -8,8 +8,13 @@
                     <div class="col-lg-12">
 
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h3>Sale Returns</h3>
-                            <a class="btn btn-primary" href="{{ route('sale.index') }}">Back to Purchases</a>
+                            <h3 class="fw-bold mb-0">Sale Returns</h3>
+                            <div class="d-flex gap-2">
+                                <a class="btn btn-danger btn-sm px-3 fw-bold d-inline-flex align-items-center" href="{{ route('report.sale_return') }}">
+                                    <i class="fas fa-chart-bar me-1"></i> Sale Return Report
+                                </a>
+                                <a class="btn btn-primary btn-sm px-3 fw-bold" href="{{ route('sale.index') }}">Back to Sales</a>
+                            </div>
                         </div>
 
                         <div class="border mt-1 shadow rounded bg-white">

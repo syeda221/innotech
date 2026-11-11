@@ -687,13 +687,17 @@
                         let balClass = lastBalance >= 0 ? 'balance-positive' : 'balance-negative';
                         let custName = t.customer_name || '-';
 
-                        let invoiceBadge = t.invoice_url 
-                            ? `<a href="${t.invoice_url}" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none py-1 px-2 shadow-sm" title="View & Print Invoice" style="cursor: pointer;"><i class="fas fa-file-invoice me-1"></i>${t.invoice} <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>`
-                            : `<span class="badge bg-light text-primary border font-monospace">${t.invoice ?? '-'}</span>`;
+                        let invoiceBadge = t.invoice_badges_html 
+                            ? t.invoice_badges_html 
+                            : (t.invoice_url 
+                                ? `<a href="${t.invoice_url}" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none py-1 px-2 shadow-sm" title="View & Print Invoice" style="cursor: pointer;"><i class="fas fa-file-invoice me-1"></i>${t.invoice} <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>`
+                                : `<span class="badge bg-light text-primary border font-monospace">${t.invoice ?? '-'}</span>`);
 
-                        let mobInvoiceBadge = t.invoice_url 
-                            ? `<a href="${t.invoice_url}" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none" title="View & Print Invoice"><i class="fas fa-file-invoice me-1"></i>${t.invoice} <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>`
-                            : `<span class="badge bg-light text-primary border font-monospace">${t.invoice ?? 'REF'}</span>`;
+                        let mobInvoiceBadge = t.invoice_badges_html 
+                            ? t.invoice_badges_html 
+                            : (t.invoice_url 
+                                ? `<a href="${t.invoice_url}" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none" title="View & Print Invoice"><i class="fas fa-file-invoice me-1"></i>${t.invoice} <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>`
+                                : `<span class="badge bg-light text-primary border font-monospace">${t.invoice ?? 'REF'}</span>`);
 
                         // Desktop Row
                         html += `
@@ -1011,13 +1015,17 @@
                     let balClass = lastBalance >= 0 ? 'balance-positive' : 'balance-negative';
                     let custName = t.customer_name || '-';
 
-                    let invoiceBadge = t.invoice_url 
-                        ? `<a href="${t.invoice_url}" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none py-1 px-2 shadow-sm" title="View & Print Invoice" style="cursor: pointer;"><i class="fas fa-file-invoice me-1"></i>${t.invoice} <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>`
-                        : `<span class="badge bg-light text-primary border font-monospace">${t.invoice ?? '-'}</span>`;
+                    let invoiceBadge = t.invoice_badges_html 
+                        ? t.invoice_badges_html 
+                        : (t.invoice_url 
+                            ? `<a href="${t.invoice_url}" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none py-1 px-2 shadow-sm" title="View & Print Invoice" style="cursor: pointer;"><i class="fas fa-file-invoice me-1"></i>${t.invoice} <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>`
+                            : `<span class="badge bg-light text-primary border font-monospace">${t.invoice ?? '-'}</span>`);
 
-                    let mobInvoiceBadge = t.invoice_url 
-                        ? `<a href="${t.invoice_url}" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none" title="View & Print Invoice"><i class="fas fa-file-invoice me-1"></i>${t.invoice} <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>`
-                        : `<span class="badge bg-light text-primary border font-monospace">${t.invoice ?? 'REF'}</span>`;
+                    let mobInvoiceBadge = t.invoice_badges_html 
+                        ? t.invoice_badges_html 
+                        : (t.invoice_url 
+                            ? `<a href="${t.invoice_url}" target="_blank" class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace text-decoration-none" title="View & Print Invoice"><i class="fas fa-file-invoice me-1"></i>${t.invoice} <i class="fas fa-external-link-alt ms-1" style="font-size: 8.5px;"></i></a>`
+                            : `<span class="badge bg-light text-primary border font-monospace">${t.invoice ?? 'REF'}</span>`);
 
                     html += `
                         <tr>
