@@ -182,6 +182,17 @@ class ChequeController extends Controller
                 'description' => "Payment: Cheque #{$request->cheque_no} ({$request->bank_name})" . ($request->note ? " - {$request->note}" : ''),
             ]);
 
+            // 4. Record Journal Entries (Dr Cheques in Hand, Cr Customer AR) on $payment source
+            $customer = Customer::find($request->customer_id);
+            $chequeInHandAcc = $this->getChequesInHandAccount();
+            $balanceService = app(\App\Services\BalanceService::class);
+            $arId = $balanceService->getAccountsReceivableId();
+            $entryDesc = "Cheque Received #{$cheque->cheque_no} ({$cheque->bank_name})" . ($request->note ? " - {$request->note}" : '');
+            $entryDate = $request->cheque_date ?: date('Y-m-d');
+
+            $this->journalService->recordEntry($payment, $chequeInHandAcc->id, $cheque->amount, 0, $entryDesc, $entryDate, null);
+            $this->journalService->recordEntry($payment, $arId, 0, $cheque->amount, $entryDesc, $entryDate, $customer);
+
             DB::commit();
             return redirect()->route('cheques.index')->with('success', 'Cheque received and customer ledger updated successfully.');
         } catch (\Exception $e) {
@@ -223,7 +234,9 @@ class ChequeController extends Controller
             }
             $cheque->save();
 
-            // Record Accounting Journal Entry: DEBIT Target Account (Increases Bank or Cash balance!)
+            // Record Accounting Journal Entries:
+            // 1. DEBIT Target Account (Increases Bank or Cash balance!) - Party is NULL (Customer was already credited on receipt)
+            // 2. CREDIT Cheques in Hand (Reduces Cheques in Hand balance!) - Party is NULL
             $desc = "Cheque #{$cheque->cheque_no} ({$cheque->bank_name}) {$actionLabel} -> {$targetAccount->title}";
             if ($cheque->customer) {
                 $desc .= " - Party: " . $cheque->customer->customer_name;
@@ -236,8 +249,21 @@ class ChequeController extends Controller
                 0,               // Credit
                 $desc,
                 $request->cleared_at,
-                $cheque->customer
+                null             // Must be NULL so customer ledger is NOT debited when cheque clears
             );
+
+            $sourceChequeAccId = $this->resolveSourceChequeAccountId($cheque);
+            if ($sourceChequeAccId && (int)$sourceChequeAccId !== (int)$request->deposit_account_id) {
+                $this->journalService->recordEntry(
+                    $cheque,
+                    $sourceChequeAccId,
+                    0,               // Debit
+                    $cheque->amount, // Credit (Clears out from Cheques in Hand!)
+                    $desc,
+                    $request->cleared_at,
+                    null
+                );
+            }
 
             DB::commit();
             $msgType = $isCash ? "Cash in Hand balance updated" : "Bank balance updated";
@@ -262,7 +288,11 @@ class ChequeController extends Controller
         try {
             $cheque = Cheque::findOrFail($id);
 
-            // If it was cleared before, reverse journal entries
+            if ($cheque->status === 'bounced') {
+                return back()->withErrors(['error' => 'Cheque is already marked as bounced.']);
+            }
+
+            // If it was cleared before, reverse clearing journal entries (reverses Bank Dr & Cheques in Hand Cr)
             if ($cheque->status === 'cleared') {
                 $this->journalService->reverseEntriesForSource($cheque);
             }
@@ -272,11 +302,13 @@ class ChequeController extends Controller
             $cheque->bounced_at = $request->bounced_at;
             $cheque->save();
 
-            // Reversal on Customer Ledger: Add balance back (+ Plus)
+            // Reversal on Customer Ledger & Journal Entries: Add balance back (+ Plus)
             if ($cheque->customer_id) {
                 $latestLedger = CustomerLedger::where('customer_id', $cheque->customer_id)->latest()->first();
                 $prevBalance = $latestLedger ? $latestLedger->closing_balance : (Customer::find($cheque->customer_id)->opening_balance ?? 0);
                 $newBalance = $prevBalance + $cheque->amount;
+
+                $bounceDesc = "Cheque Bounced Reversal: #{$cheque->cheque_no} ({$cheque->bank_name}) - Reason: {$request->bounce_reason}";
 
                 CustomerLedger::create([
                     'customer_id' => $cheque->customer_id,
@@ -284,8 +316,38 @@ class ChequeController extends Controller
                     'previous_balance' => $prevBalance,
                     'opening_balance' => 0,
                     'closing_balance' => $newBalance,
-                    'description' => "Cheque Bounced Reversal: #{$cheque->cheque_no} ({$cheque->bank_name}) - Reason: {$request->bounce_reason}",
+                    'description' => $bounceDesc,
                 ]);
+
+                // Record Journal Entries: Debit Customer AR (restores debt), Credit Cheques in Hand
+                $customer = Customer::find($cheque->customer_id);
+                $balanceService = app(\App\Services\BalanceService::class);
+                $arId = $balanceService->getAccountsReceivableId();
+                $sourceChequeAccId = $this->resolveSourceChequeAccountId($cheque);
+
+                if ($customer) {
+                    $this->journalService->recordEntry(
+                        $cheque,
+                        $arId,
+                        $cheque->amount, // Debit Customer (Restores Receivable)
+                        0,
+                        $bounceDesc,
+                        $request->bounced_at,
+                        $customer
+                    );
+                }
+
+                if ($sourceChequeAccId) {
+                    $this->journalService->recordEntry(
+                        $cheque,
+                        $sourceChequeAccId,
+                        0,
+                        $cheque->amount, // Credit Cheques in Hand (Removes bounced cheque)
+                        $bounceDesc,
+                        $request->bounced_at,
+                        null
+                    );
+                }
             }
 
             DB::commit();
@@ -303,16 +365,53 @@ class ChequeController extends Controller
     {
         $cheque = Cheque::findOrFail($id);
 
-        if ($cheque->status === 'cleared') {
+        if (in_array($cheque->status, ['cleared', 'bounced'])) {
             $this->journalService->reverseEntriesForSource($cheque);
         }
 
         if ($cheque->customer_payment_id) {
-            CustomerPayment::where('id', $cheque->customer_payment_id)->delete();
+            $payment = CustomerPayment::find($cheque->customer_payment_id);
+            if ($payment) {
+                $this->journalService->reverseEntriesForSource($payment);
+                $payment->delete();
+            }
         }
 
         $cheque->delete();
         return redirect()->route('cheques.index')->with('success', 'Cheque deleted successfully.');
+    }
+
+    private function getChequesInHandAccount(): Account
+    {
+        return Account::firstOrCreate(
+            ['title' => 'Cheques in Hand'],
+            [
+                'head_id' => (AccountHead::where('name', 'LIKE', '%cheque%')->orWhere('name', 'LIKE', '%cash%')->value('id')) ?: (AccountHead::firstOrCreate(['name' => 'Cheque'], ['type' => 'Asset', 'level' => 1, 'opening_balance' => 0])->id ?? null),
+                'opening_balance' => 0,
+                'current_balance' => 0,
+                'type' => 'Debit',
+                'status' => 1,
+            ]
+        );
+    }
+
+    private function resolveSourceChequeAccountId(Cheque $cheque): ?int
+    {
+        if (!empty($cheque->note) && preg_match('/Receipt Voucher\s+(RV-\d+)/i', $cheque->note, $m)) {
+            $vm = \App\Models\VoucherMaster::where('remarks', 'like', "%Ref: {$m[1]}%")->first();
+            if ($vm) {
+                $detail = \App\Models\VoucherDetail::where('voucher_master_id', $vm->id)
+                    ->where('debit', '>', 0)
+                    ->whereHas('account', function ($q) {
+                        $q->where('title', 'like', '%cheque%');
+                    })
+                    ->first();
+                if ($detail) {
+                    return $detail->account_id;
+                }
+            }
+        }
+        return $this->getChequesInHandAccount()->id;
     }
 
     /**
