@@ -507,6 +507,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/all-vouchers/data', [VoucherController::class, 'voucherHistoryData'])->middleware('permission:all.vouchers.view')->name('voucher.history.data');
 
     // Vouchers (Receipts, Payments, Expenses)
+    Route::get('/vouchers/customer-unpaid-invoices/{customerId}', [VoucherController::class, 'customerUnpaidInvoices'])->name('vouchers.customer_unpaid_invoices');
+    Route::get('/vouchers/vendor-unpaid-purchases/{vendorId}', [VoucherController::class, 'vendorUnpaidPurchases'])->name('vouchers.vendor_unpaid_purchases');
+
     Route::get('/all_recepit_vochers', [VoucherController::class, 'all_recepit_vochers'])->name('all_recepit_vochers');
     Route::get('/recepit_vochers', [VoucherController::class, 'recepit_vochers'])->name('recepit_vochers');
     Route::post('/store_rec_vochers', [VoucherController::class, 'store_rec_vochers'])->name('store_rec_vochers');
@@ -582,6 +585,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('report/product-sale-customer-wise', [ReportingController::class, 'product_sale_customer_wise_report'])->middleware('permission:sale.report.view')->name('report.product_sale_customer_wise');
     Route::get('report/product-sale-customer-wise/fetch', [ReportingController::class, 'fetchProductSaleCustomerWise'])->middleware('permission:sale.report.view')->name('report.product_sale_customer_wise.fetch');
+
+    Route::get('report/sale-return', [ReportingController::class, 'sale_return_report'])->middleware('permission:sale.report.view')->name('report.sale_return');
+    Route::get('report/sale-return/fetch', [ReportingController::class, 'fetchSaleReturnReport'])->middleware('permission:sale.report.view')->name('report.sale_return.fetch');
 
     Route::get('report/sales-officer-sale', [ReportingController::class, 'sales_officer_sale_report'])->middleware('permission:sale.report.view')->name('report.sales_officer_sale');
     Route::get('report/sales-officer-sale/fetch', [ReportingController::class, 'fetchSalesOfficerSaleReport'])->middleware('permission:sale.report.view')->name('report.sales_officer_sale.fetch');

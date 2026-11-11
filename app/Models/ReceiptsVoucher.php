@@ -28,4 +28,9 @@ class ReceiptsVoucher extends Model
          // Assuming sub customers are also in customers table or handled via same logic
         return $this->belongsTo(Customer::class, 'party_id');
     }
+
+    public function invoiceAllocations()
+    {
+        return $this->hasMany(VoucherInvoiceAllocation::class, 'receipt_voucher_id');
+    }
 }

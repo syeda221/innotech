@@ -432,9 +432,86 @@
                             </div>
                              <div class="col-2">
         <label class="rv-label">Current Balance</label>
-        <div id="balanceDisplay" class="balance-badge balance-dr p-2 text-center" style="width:100%;">20000.00 Dr</div>
+        <div id="balanceDisplay" class="balance-badge balance-dr p-2 text-center" style="width:100%;">0.00 Dr</div>
         <input type="hidden" id="openingBal">
     </div>
+                        </div>
+
+                        <!-- Invoice Settlement Section (Auto FIFO / Manual) -->
+                        <div id="invoiceSettlementSection" class="mb-4" style="display: none;">
+                            <div class="card border-0 shadow-sm" style="background: #ffffff; border: 1.5px solid #cbd5e1 !important; border-radius: 12px; overflow: hidden;">
+                                <div class="card-header bg-white py-3 px-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 34px; height: 34px; background: #e0e7ff; color: #4338ca; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                            <i class="bi bi-receipt"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">Outstanding Sales Invoices Settlement</span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2" id="invCountBadge">0 Invoices</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" id="invTotalDueBadge">Total Due: Rs. 0.00</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 2 Mode Options -->
+                                    <div class="d-flex align-items-center gap-2 bg-light p-1 rounded-3 border">
+                                        <span class="text-muted small fw-bold px-2"><i class="bi bi-sliders me-1"></i> Allocation Mode:</span>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <input type="radio" class="btn-check" name="allocation_mode" id="allocModeFifo" value="fifo" checked autocomplete="off">
+                                            <label class="btn btn-outline-primary fw-semibold px-3" for="allocModeFifo" title="Automatically distributes receipt amount to oldest invoices first (FIFO)">
+                                                <i class="bi bi-lightning-charge-fill me-1 text-warning"></i> Auto FIFO
+                                            </label>
+
+                                            <input type="radio" class="btn-check" name="allocation_mode" id="allocModeManual" value="manual" autocomplete="off">
+                                            <label class="btn btn-outline-primary fw-semibold px-3" for="allocModeManual" title="Select specific invoices and customize receipt allocation amount">
+                                                <i class="bi bi-check2-square me-1"></i> Manual Selection
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0" id="invoicesAllocationTable" style="font-size: 0.88rem;">
+                                            <thead class="table-light text-muted text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                                                <tr>
+                                                    <th class="text-center" style="width: 45px;">
+                                                        <input type="checkbox" id="selectAllInvoices" class="form-check-input" style="cursor: pointer;" title="Select / Deselect All">
+                                                    </th>
+                                                    <th>Invoice #</th>
+                                                    <th>Date</th>
+                                                    <th class="text-end">Total Bill</th>
+                                                    <th class="text-end">Already Paid</th>
+                                                    <th class="text-end text-danger fw-bold">Remaining Due</th>
+                                                    <th class="text-end" style="width: 170px;">This Receipt (Rs.)</th>
+                                                    <th class="text-end text-muted">New Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="invoicesTableBody">
+                                                <!-- Dynamic rows populated via AJAX -->
+                                            </tbody>
+                                            <tfoot class="table-light fw-bold" style="border-top: 2px solid #e2e8f0;">
+                                                <tr>
+                                                    <td colspan="5" class="text-end">Total Settled Invoices:</td>
+                                                    <td class="text-end text-danger font-monospace" id="tableTotalDueSum">Rs. 0.00</td>
+                                                    <td class="text-end font-monospace text-success fw-bold" id="tableTotalAllocatedSum" style="font-size: 0.95rem;">Rs. 0.00</td>
+                                                    <td class="text-end font-monospace text-muted" id="tableTotalRemainingSum">Rs. 0.00</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    <div id="noInvoicesNotice" class="p-3 text-center text-muted" style="display: none;">
+                                        <i class="bi bi-info-circle me-1 text-primary"></i> No unpaid invoices found for this customer. Payment will be credited directly to customer ledger.
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light py-2 px-3 border-top d-flex justify-content-between align-items-center" id="invoiceSettlementFooter">
+                                    <small class="text-muted" id="allocationModeHint">
+                                        <i class="bi bi-info-circle me-1 text-primary"></i> <strong>Auto FIFO Mode:</strong> Entered receipt amount is automatically distributed to oldest unpaid sales first.
+                                    </small>
+                                    <button type="button" class="btn btn-sm btn-outline-success fw-bold" id="btnSyncToReceiptAmount" style="display: none;">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Apply Settled Total to Amount
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Payment Rows -->
@@ -648,6 +725,8 @@
                 $('#partyId').val(null).trigger('change');
                 $('#tel').val('');
                 updateBalance(0);
+                $('#invoiceSettlementSection').slideUp();
+                currentInvoices = [];
             });
 
             // Party selected → load details & update balance
@@ -664,11 +743,273 @@
                 if (!$('#remarks').val() && partyName) {
                     $('#remarks').val('Receipt from ' + partyName);
                 }
+
+                // Check and load pending customer sales invoices
+                let pType = $('#partyType').val();
+                if (pType === 'customer' || pType === 'walkin') {
+                    loadCustomerInvoices(item.id);
+                } else {
+                    $('#invoiceSettlementSection').slideUp();
+                    currentInvoices = [];
+                }
             });
 
             $('#partyId').on('select2:clear', function() {
                 $('#tel').val('');
                 updateBalance(0);
+                $('#invoiceSettlementSection').slideUp();
+                currentInvoices = [];
+            });
+
+            // =========================================================
+            // INVOICE SETTLEMENT LOGIC (Auto FIFO & Manual Selection)
+            // =========================================================
+            let currentInvoices = [];
+
+            function loadCustomerInvoices(customerId) {
+                if (!customerId) return;
+                $('#invoicesTableBody').html('<tr><td colspan="8" class="text-center py-3 text-muted"><span class="spinner-border spinner-border-sm me-1 text-primary"></span> Loading outstanding invoices...</td></tr>');
+                $('#invoiceSettlementSection').slideDown();
+                $('#noInvoicesNotice').hide();
+                $('#invoicesAllocationTable').show();
+
+                $.get('{{ url("vouchers/customer-unpaid-invoices") }}/' + customerId, function(res) {
+                    if (res && res.success && res.invoices && res.invoices.length > 0) {
+                        currentInvoices = res.invoices;
+                        $('#invCountBadge').text(res.count + (res.count === 1 ? ' Invoice' : ' Invoices'));
+                        $('#invTotalDueBadge').text('Total Due: Rs. ' + parseFloat(res.total_due).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                        $('#tableTotalDueSum').text('Rs. ' + parseFloat(res.total_due).toFixed(2));
+                        renderInvoicesTable();
+                        recalculateInvoices();
+                    } else {
+                        currentInvoices = [];
+                        $('#invCountBadge').text('0 Invoices');
+                        $('#invTotalDueBadge').text('Total Due: Rs. 0.00');
+                        $('#invoicesAllocationTable').hide();
+                        $('#noInvoicesNotice').show();
+                        $('#tableTotalAllocatedSum').text('Rs. 0.00');
+                        $('#tableTotalRemainingSum').text('Rs. 0.00');
+                    }
+                }).fail(function() {
+                    $('#invoicesAllocationTable').hide();
+                    $('#noInvoicesNotice').show().html('<i class="bi bi-exclamation-triangle text-danger me-1"></i> Failed to load customer invoices.');
+                });
+            }
+
+            function renderInvoicesTable() {
+                let mode = $('input[name="allocation_mode"]:checked').val() || 'fifo';
+                let html = '';
+
+                currentInvoices.forEach(function(inv, idx) {
+                    let isReadonly = (mode === 'fifo') ? 'readonly' : '';
+                    let isChecked = (mode === 'fifo');
+                    html += `
+                    <tr class="invoice-row" data-index="${idx}" data-sale-id="${inv.id}" data-due="${inv.due_amount}">
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input inv-checkbox" data-index="${idx}" value="${inv.id}" ${isChecked ? 'checked' : ''} ${mode === 'fifo' ? 'disabled' : ''} style="cursor: pointer;">
+                            <input type="hidden" name="invoice_ids[]" class="inv-id-input" value="${inv.id}">
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-primary border font-monospace fw-bold" style="font-size: 0.85rem;">${inv.invoice_no}</span>
+                        </td>
+                        <td class="text-nowrap small text-muted">${inv.date}</td>
+                        <td class="text-end font-monospace">Rs. ${parseFloat(inv.total_amount).toFixed(2)}</td>
+                        <td class="text-end font-monospace text-muted">Rs. ${parseFloat(inv.paid_amount).toFixed(2)}</td>
+                        <td class="text-end font-monospace text-danger fw-bold">Rs. ${parseFloat(inv.due_amount).toFixed(2)}</td>
+                        <td class="text-end">
+                            <input type="number" step="0.01" min="0" max="${inv.due_amount}" 
+                                name="invoice_allocated[]" 
+                                class="form-control form-control-sm text-end font-monospace fw-bold inv-alloc-input" 
+                                data-index="${idx}" 
+                                data-due="${inv.due_amount}" 
+                                value="0.00" 
+                                ${isReadonly} 
+                                style="background: ${mode === 'fifo' ? '#f8fafc' : '#ffffff'}; border-color: #cbd5e1;">
+                        </td>
+                        <td class="text-end font-monospace text-muted inv-remaining-preview">Rs. ${parseFloat(inv.due_amount).toFixed(2)}</td>
+                    </tr>`;
+                });
+
+                $('#invoicesTableBody').html(html);
+            }
+
+            function recalculateInvoices() {
+                let mode = $('input[name="allocation_mode"]:checked').val() || 'fifo';
+                let totalVoucherAmt = parseFloat($('#totalAmount').val()) || 0;
+
+                if (mode === 'fifo') {
+                    $('#allocationModeHint').html('<i class="bi bi-info-circle me-1 text-primary"></i> <strong>Auto FIFO Mode:</strong> Entered receipt amount is automatically distributed to oldest unpaid sales first.');
+                    $('#btnSyncToReceiptAmount').hide();
+
+                    let remainingVoucherAmt = totalVoucherAmt;
+                    let totalAllocatedSum = 0;
+                    let totalRemainingSum = 0;
+
+                    $('.invoice-row').each(function() {
+                        let due = parseFloat($(this).data('due')) || 0;
+                        let allocated = 0;
+
+                        if (remainingVoucherAmt > 0) {
+                            allocated = Math.min(remainingVoucherAmt, due);
+                            remainingVoucherAmt -= allocated;
+                        }
+
+                        let newRemaining = Math.max(0, due - allocated);
+                        totalAllocatedSum += allocated;
+                        totalRemainingSum += newRemaining;
+
+                        let $chk = $(this).find('.inv-checkbox');
+                        let $idInput = $(this).find('.inv-id-input');
+                        let $allocInput = $(this).find('.inv-alloc-input');
+                        let $prev = $(this).find('.inv-remaining-preview');
+
+                        $allocInput.prop('readonly', true).css('background', '#f8fafc');
+
+                        if (allocated > 0) {
+                            $chk.prop('checked', true).prop('disabled', true);
+                            $idInput.prop('disabled', false);
+                            $allocInput.prop('disabled', false).val(allocated.toFixed(2)).css('color', '#16a34a');
+                            $(this).addClass('table-success-subtle');
+                        } else {
+                            $chk.prop('checked', false).prop('disabled', true);
+                            $idInput.prop('disabled', true);
+                            $allocInput.prop('disabled', false).val('0.00').css('color', '#64748b');
+                            $(this).removeClass('table-success-subtle');
+                        }
+
+                        if (newRemaining <= 0.001 && allocated > 0) {
+                            $prev.html('<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2"></i> Fully Paid</span>');
+                        } else {
+                            $prev.text('Rs. ' + newRemaining.toFixed(2));
+                        }
+                    });
+
+                    $('#tableTotalAllocatedSum').text('Rs. ' + totalAllocatedSum.toFixed(2));
+                    $('#tableTotalRemainingSum').text('Rs. ' + totalRemainingSum.toFixed(2));
+
+                } else {
+                    // MANUAL SELECTION MODE
+                    $('#allocationModeHint').html('<i class="bi bi-pencil-square me-1 text-primary"></i> <strong>Manual Mode:</strong> Check specific invoices and edit the receipt amount allocated to each.');
+                    $('#btnSyncToReceiptAmount').show();
+
+                    let totalAllocatedSum = 0;
+                    let totalRemainingSum = 0;
+
+                    $('.invoice-row').each(function() {
+                        let due = parseFloat($(this).data('due')) || 0;
+                        let $chk = $(this).find('.inv-checkbox');
+                        let $idInput = $(this).find('.inv-id-input');
+                        let $allocInput = $(this).find('.inv-alloc-input');
+                        let $prev = $(this).find('.inv-remaining-preview');
+
+                        $chk.prop('disabled', false);
+
+                        if ($chk.is(':checked')) {
+                            $allocInput.prop('readonly', false).prop('disabled', false).css('background', '#ffffff').css('color', '#16a34a');
+                            $idInput.prop('disabled', false);
+
+                            let currentAlloc = parseFloat($allocInput.val()) || 0;
+                            if (currentAlloc <= 0) {
+                                currentAlloc = due;
+                                $allocInput.val(due.toFixed(2));
+                            } else if (currentAlloc > due) {
+                                currentAlloc = due;
+                                $allocInput.val(due.toFixed(2));
+                            }
+
+                            let newRemaining = Math.max(0, due - currentAlloc);
+                            totalAllocatedSum += currentAlloc;
+                            totalRemainingSum += newRemaining;
+
+                            if (newRemaining <= 0.001 && currentAlloc > 0) {
+                                $prev.html('<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2"></i> Fully Paid</span>');
+                            } else {
+                                $prev.text('Rs. ' + newRemaining.toFixed(2));
+                            }
+                            $(this).addClass('table-success-subtle');
+                        } else {
+                            $allocInput.prop('readonly', true).val('0.00').css('background', '#f8fafc').css('color', '#64748b');
+                            $idInput.prop('disabled', true);
+                            totalRemainingSum += due;
+                            $prev.text('Rs. ' + due.toFixed(2));
+                            $(this).removeClass('table-success-subtle');
+                        }
+                    });
+
+                    $('#tableTotalAllocatedSum').text('Rs. ' + totalAllocatedSum.toFixed(2));
+                    $('#tableTotalRemainingSum').text('Rs. ' + totalRemainingSum.toFixed(2));
+                }
+            }
+
+            // Allocation Mode Switch Change
+            $('input[name="allocation_mode"]').on('change', function() {
+                let mode = $(this).val();
+                if (mode === 'manual') {
+                    $('.inv-checkbox').prop('disabled', false);
+                    $('.inv-alloc-input').prop('readonly', false).css('background', '#ffffff');
+                } else {
+                    $('.inv-checkbox').prop('disabled', true);
+                    $('.inv-alloc-input').prop('readonly', true).css('background', '#f8fafc');
+                }
+                recalculateInvoices();
+            });
+
+            // Checkbox click in Manual Mode
+            $(document).on('change', '.inv-checkbox', function() {
+                let $row = $(this).closest('.invoice-row');
+                let due = parseFloat($row.data('due')) || 0;
+                let $allocInput = $row.find('.inv-alloc-input');
+
+                if ($(this).is(':checked')) {
+                    $allocInput.val(due.toFixed(2));
+                } else {
+                    $allocInput.val('0.00');
+                }
+                recalculateInvoices();
+            });
+
+            // Select All Invoices in Manual Mode
+            $('#selectAllInvoices').on('change', function() {
+                let isChecked = $(this).is(':checked');
+                let mode = $('input[name="allocation_mode"]:checked').val() || 'fifo';
+                if (mode === 'manual') {
+                    $('.inv-checkbox').each(function() {
+                        $(this).prop('checked', isChecked);
+                        let $row = $(this).closest('.invoice-row');
+                        let due = parseFloat($row.data('due')) || 0;
+                        $row.find('.inv-alloc-input').val(isChecked ? due.toFixed(2) : '0.00');
+                    });
+                    recalculateInvoices();
+                }
+            });
+
+            // Manual Allocation Input changes
+            $(document).on('input change', '.inv-alloc-input', function() {
+                let due = parseFloat($(this).data('due')) || 0;
+                let val = parseFloat($(this).val()) || 0;
+
+                if (val < 0) {
+                    $(this).val('0.00');
+                } else if (val > due) {
+                    $(this).val(due.toFixed(2));
+                }
+                recalculateInvoices();
+            });
+
+            // Match Manual Settled Total to Voucher Payment Amount button
+            $('#btnSyncToReceiptAmount').on('click', function() {
+                let totalAllocated = 0;
+                $('.invoice-row').each(function() {
+                    if ($(this).find('.inv-checkbox').is(':checked')) {
+                        totalAllocated += parseFloat($(this).find('.inv-alloc-input').val()) || 0;
+                    }
+                });
+
+                if (totalAllocated > 0) {
+                    let $firstAmount = $('.voucher-row:first').find('.amount');
+                    $firstAmount.val(totalAllocated.toFixed(2));
+                    calculateTotal();
+                }
             });
 
             function updateBalance(bal) {
@@ -810,6 +1151,7 @@
                     total += parseFloat($(this).val()) || 0;
                 });
                 $('#totalAmount').val(total.toFixed(2));
+                recalculateInvoices();
             }
             $(document).on('input', '.amount', function() {
                 calculateTotal();
@@ -923,6 +1265,19 @@
             // Handle Save (Print) Form Submission
             $('#receiptForm').on('submit', function(e) {
                 e.preventDefault();
+
+                // Ensure invoice inputs are enabled for allocated invoices so serialize() picks them up
+                $('.invoice-row').each(function() {
+                    let isChecked = $(this).find('.inv-checkbox').is(':checked');
+                    let allocVal = parseFloat($(this).find('.inv-alloc-input').val()) || 0;
+                    if (isChecked && allocVal > 0) {
+                        $(this).find('.inv-id-input').prop('disabled', false);
+                        $(this).find('.inv-alloc-input').prop('disabled', false);
+                    } else {
+                        $(this).find('.inv-id-input').prop('disabled', true);
+                        $(this).find('.inv-alloc-input').prop('disabled', true);
+                    }
+                });
 
                 let partyType = $('#partyType').val();
                 let partyId = $('#partyId').val();

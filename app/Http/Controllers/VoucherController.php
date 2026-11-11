@@ -405,7 +405,18 @@ class VoucherController extends Controller
                 ->first();
         }
 
-        return view('admin_panel.vochers.print', compact('voucher', 'rows', 'party', 'previousBalance'));
+        $invoiceAllocations = \App\Models\VoucherInvoiceAllocation::where(function ($q) use ($id, $voucherV2, $voucher) {
+            $q->where('receipt_voucher_id', $id)
+              ->orWhere('voucher_master_id', $id);
+            if (isset($voucherV2) && $voucherV2) {
+                $q->orWhere('voucher_master_id', $voucherV2->id);
+            }
+            if (isset($voucher->id)) {
+                $q->orWhere('receipt_voucher_id', $voucher->id);
+            }
+        })->get();
+
+        return view('admin_panel.vochers.print', compact('voucher', 'rows', 'party', 'previousBalance', 'invoiceAllocations'));
     }
 
     public function getAccountsByHead($headId)
@@ -439,6 +450,139 @@ class VoucherController extends Controller
         return response()->json([
             'opening_balance' => $account->opening_balance ?? 0,
         ]);
+    }
+
+    public function customerUnpaidInvoices(Request $request, $customerId)
+    {
+        try {
+            $customer = \App\Models\Customer::find($customerId);
+            if (!$customer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer not found',
+                    'invoices' => [],
+                    'total_due' => 0,
+                    'count' => 0
+                ]);
+            }
+
+            $invoices = \App\Models\Sale::where('customer_id', $customerId)
+                ->where(function ($q) {
+                    $q->whereNull('sale_status')
+                      ->orWhereNotIn('sale_status', ['quotation', 'returned']);
+                })
+                ->where(function ($q) {
+                    $q->where('due_amount', '>', 0)
+                      ->orWhereRaw('(COALESCE(total_net, 0) - COALESCE(paid_amount, 0)) > 0');
+                })
+                ->orderBy('created_at', 'asc')
+                ->orderBy('id', 'asc')
+                ->get()
+                ->map(function ($sale) {
+                    $total = (float) $sale->total_net;
+                    $paid = (float) $sale->paid_amount;
+                    $due = (float) ($sale->due_amount > 0 ? $sale->due_amount : max(0, $total - $paid));
+                    return [
+                        'id' => $sale->id,
+                        'invoice_no' => $sale->invoice_no ?: ('INV-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT)),
+                        'date' => $sale->created_at ? $sale->created_at->format('d-M-Y') : '-',
+                        'raw_date' => $sale->created_at ? $sale->created_at->format('Y-m-d') : '',
+                        'total_amount' => $total,
+                        'paid_amount' => $paid,
+                        'due_amount' => $due,
+                    ];
+                })
+                ->filter(function ($item) {
+                    return $item['due_amount'] > 0;
+                })
+                ->values();
+
+            $totalDue = $invoices->sum('due_amount');
+
+            return response()->json([
+                'success' => true,
+                'customer_id' => $customer->id,
+                'customer_name' => $customer->customer_name,
+                'invoices' => $invoices,
+                'total_due' => round($totalDue, 2),
+                'count' => $invoices->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'invoices' => [],
+                'total_due' => 0,
+                'count' => 0
+            ], 500);
+        }
+    }
+
+    public function vendorUnpaidPurchases(Request $request, $vendorId)
+    {
+        try {
+            $vendor = \App\Models\Vendor::find($vendorId);
+            if (!$vendor) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vendor not found',
+                    'purchases' => [],
+                    'total_due' => 0,
+                    'count' => 0
+                ]);
+            }
+
+            $purchases = \App\Models\Purchase::where('vendor_id', $vendorId)
+                ->where(function ($q) {
+                    $q->whereNull('status_purchase')
+                      ->orWhereNotIn('status_purchase', ['draft', 'Returned']);
+                })
+                ->where(function ($q) {
+                    $q->where('due_amount', '>', 0)
+                      ->orWhereRaw('(COALESCE(net_amount, 0) - COALESCE(paid_amount, 0)) > 0');
+                })
+                ->orderBy('purchase_date', 'asc')
+                ->orderBy('id', 'asc')
+                ->get()
+                ->map(function ($pur) {
+                    $total = (float) $pur->net_amount;
+                    $paid = (float) $pur->paid_amount;
+                    $due = (float) ($pur->due_amount > 0 ? $pur->due_amount : max(0, $total - $paid));
+                    return [
+                        'id' => $pur->id,
+                        'invoice_no' => $pur->invoice_no ?: ('PUR-' . str_pad($pur->id, 4, '0', STR_PAD_LEFT)),
+                        'po_no' => $pur->purchase_order_no ?: '-',
+                        'date' => $pur->purchase_date ? $pur->purchase_date->format('d-M-Y') : '-',
+                        'raw_date' => $pur->purchase_date ? $pur->purchase_date->format('Y-m-d') : '',
+                        'total_amount' => $total,
+                        'paid_amount' => $paid,
+                        'due_amount' => $due,
+                    ];
+                })
+                ->filter(function ($item) {
+                    return $item['due_amount'] > 0;
+                })
+                ->values();
+
+            $totalDue = $purchases->sum('due_amount');
+
+            return response()->json([
+                'success' => true,
+                'vendor_id' => $vendor->id,
+                'vendor_name' => $vendor->name,
+                'purchases' => $purchases,
+                'total_due' => round($totalDue, 2),
+                'count' => $purchases->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'purchases' => [],
+                'total_due' => 0,
+                'count' => 0
+            ], 500);
+        }
     }
 
     public function recepit_vochers()
@@ -624,6 +768,83 @@ class VoucherController extends Controller
             } catch (\Exception $e) {
                 \Log::error('V2 Sync Error: '.$e->getMessage());
                 // Silently fail or return error message if preferred, but usually we log.
+            }
+
+            // ✅ PROCESS INVOICE ALLOCATIONS (Auto FIFO or Manual)
+            try {
+                $vType = strtolower($request->vendor_type);
+                if (in_array($vType, ['customer', 'walkin']) && !empty($request->vendor_id)) {
+                    $customerId = $request->vendor_id;
+                    $allocationsToSave = [];
+
+                    if ($request->has('invoice_ids') && is_array($request->invoice_ids)) {
+                        foreach ($request->invoice_ids as $idx => $sId) {
+                            $allocAmt = isset($request->invoice_allocated[$idx]) ? (float) $request->invoice_allocated[$idx] : 0;
+                            if ($allocAmt > 0) {
+                                $allocationsToSave[] = [
+                                    'sale_id' => $sId,
+                                    'amount' => $allocAmt,
+                                ];
+                            }
+                        }
+                    }
+
+                    // Fallback: If Auto FIFO mode selected and no explicit invoice_allocated provided:
+                    if (empty($allocationsToSave) && $request->allocation_mode === 'fifo' && (float)$request->total_amount > 0) {
+                        $unpaidSales = \App\Models\Sale::where('customer_id', $customerId)
+                            ->where(function ($q) {
+                                $q->whereNull('sale_status')->orWhereNotIn('sale_status', ['quotation', 'returned']);
+                            })
+                            ->where('due_amount', '>', 0)
+                            ->orderBy('created_at', 'asc')
+                            ->orderBy('id', 'asc')
+                            ->get();
+
+                        $remTotal = (float) $request->total_amount;
+                        foreach ($unpaidSales as $us) {
+                            if ($remTotal <= 0) break;
+                            $take = min($remTotal, (float) $us->due_amount);
+                            if ($take > 0) {
+                                $allocationsToSave[] = [
+                                    'sale_id' => $us->id,
+                                    'amount' => $take,
+                                ];
+                                $remTotal -= $take;
+                            }
+                        }
+                    }
+
+                    foreach ($allocationsToSave as $alloc) {
+                        $sale = \App\Models\Sale::find($alloc['sale_id']);
+                        if ($sale) {
+                            $prevDue = (float) $sale->due_amount;
+                            $allocAmt = (float) $alloc['amount'];
+                            $newPaid = (float) $sale->paid_amount + $allocAmt;
+                            $newDue = max(0, (float) $sale->total_net - $newPaid);
+
+                            $sale->paid_amount = $newPaid;
+                            $sale->due_amount = $newDue;
+                            $sale->cash = (float) $sale->cash + $allocAmt;
+                            $sale->change = ($sale->cash + ($sale->card ?? 0)) - (float) $sale->total_net;
+                            $sale->save();
+
+                            \App\Models\VoucherInvoiceAllocation::create([
+                                'voucher_type'       => 'receipt',
+                                'receipt_voucher_id' => $rec->id,
+                                'voucher_master_id'  => isset($v2Master) && $v2Master ? $v2Master->id : null,
+                                'sale_id'            => $sale->id,
+                                'invoice_no'         => $sale->invoice_no ?: ('INV-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT)),
+                                'invoice_date'       => $sale->created_at ? $sale->created_at->format('Y-m-d') : null,
+                                'invoice_amount'     => $sale->total_net,
+                                'previous_due'       => $prevDue,
+                                'allocated_amount'   => $allocAmt,
+                                'remaining_due'      => $newDue,
+                            ]);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Receipt Invoice Allocation Error: ' . $e->getMessage());
             }
 
             DB::commit();
@@ -855,6 +1076,89 @@ class VoucherController extends Controller
                 }
             }
 
+            // ✅ PROCESS PURCHASE BILL ALLOCATIONS (Auto FIFO or Manual)
+            try {
+                $firstVendorId = null;
+                if ($request->vendor_id && is_array($request->vendor_id)) {
+                    foreach ($request->vendor_id as $vIdx => $vId) {
+                        if (($request->vendor_type[$vIdx] ?? '') === 'vendor') {
+                            $firstVendorId = $vId;
+                            break;
+                        }
+                    }
+                }
+
+                if ($firstVendorId) {
+                    $allocationsToSave = [];
+
+                    if ($request->has('purchase_ids') && is_array($request->purchase_ids)) {
+                        foreach ($request->purchase_ids as $idx => $pId) {
+                            $allocAmt = isset($request->purchase_allocated[$idx]) ? (float) $request->purchase_allocated[$idx] : 0;
+                            if ($allocAmt > 0) {
+                                $allocationsToSave[] = [
+                                    'purchase_id' => $pId,
+                                    'amount' => $allocAmt,
+                                ];
+                            }
+                        }
+                    }
+
+                    // Fallback: If Auto FIFO mode selected and no explicit purchase_allocated provided:
+                    if (empty($allocationsToSave) && $request->allocation_mode === 'fifo' && (float)$request->total_amount > 0) {
+                        $unpaidPurchases = \App\Models\Purchase::where('vendor_id', $firstVendorId)
+                            ->where(function ($q) {
+                                $q->whereNull('status_purchase')->orWhereNotIn('status_purchase', ['draft', 'Returned']);
+                            })
+                            ->where('due_amount', '>', 0)
+                            ->orderBy('purchase_date', 'asc')
+                            ->orderBy('id', 'asc')
+                            ->get();
+
+                        $remTotal = (float) $request->total_amount;
+                        foreach ($unpaidPurchases as $up) {
+                            if ($remTotal <= 0) break;
+                            $take = min($remTotal, (float) $up->due_amount);
+                            if ($take > 0) {
+                                $allocationsToSave[] = [
+                                    'purchase_id' => $up->id,
+                                    'amount' => $take,
+                                ];
+                                $remTotal -= $take;
+                            }
+                        }
+                    }
+
+                    foreach ($allocationsToSave as $alloc) {
+                        $purchase = \App\Models\Purchase::find($alloc['purchase_id']);
+                        if ($purchase) {
+                            $prevDue = (float) $purchase->due_amount;
+                            $allocAmt = (float) $alloc['amount'];
+                            $newPaid = (float) $purchase->paid_amount + $allocAmt;
+                            $newDue = max(0, (float) $purchase->net_amount - $newPaid);
+
+                            $purchase->paid_amount = $newPaid;
+                            $purchase->due_amount = $newDue;
+                            $purchase->save();
+
+                            \App\Models\VoucherInvoiceAllocation::create([
+                                'voucher_type'       => 'payment',
+                                'payment_voucher_id' => $payment->id,
+                                'voucher_master_id'  => isset($v2Master) && $v2Master ? $v2Master->id : null,
+                                'purchase_id'        => $purchase->id,
+                                'invoice_no'         => $purchase->invoice_no ?: $purchase->purchase_order_no,
+                                'invoice_date'       => $purchase->purchase_date ? $purchase->purchase_date->format('Y-m-d') : null,
+                                'invoice_amount'     => $purchase->net_amount,
+                                'previous_due'       => $prevDue,
+                                'allocated_amount'   => $allocAmt,
+                                'remaining_due'      => $newDue,
+                            ]);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Payment Purchase Allocation Error: ' . $e->getMessage());
+            }
+
             DB::commit();
 
             if ($request->ajax() || $request->wantsJson()) {
@@ -1011,7 +1315,15 @@ class VoucherController extends Controller
                 }
             }
 
-            return view('admin_panel.vochers.payment_vochers.print', compact('voucher', 'rows', 'party', 'previousBalance'));
+            $invoiceAllocations = \App\Models\VoucherInvoiceAllocation::where(function ($q) use ($id, $voucherV2) {
+                $q->where('payment_voucher_id', $id)
+                  ->orWhere('voucher_master_id', $id);
+                if ($voucherV2) {
+                    $q->orWhere('voucher_master_id', $voucherV2->id);
+                }
+            })->get();
+
+            return view('admin_panel.vochers.payment_vochers.print', compact('voucher', 'rows', 'party', 'previousBalance', 'invoiceAllocations'));
         }
 
         $voucher = \App\Models\PaymentVoucher::findOrFail($id);
@@ -1086,7 +1398,15 @@ class VoucherController extends Controller
                 ->first();
         }
 
-        return view('admin_panel.vochers.payment_vochers.print', compact('voucher', 'rows', 'party', 'previousBalance'));
+        $invoiceAllocations = \App\Models\VoucherInvoiceAllocation::where(function ($q) use ($id, $voucher) {
+            $q->where('payment_voucher_id', $id)
+              ->orWhere('voucher_master_id', $id);
+            if (isset($voucher->id)) {
+                $q->orWhere('payment_voucher_id', $voucher->id);
+            }
+        })->get();
+
+        return view('admin_panel.vochers.payment_vochers.print', compact('voucher', 'rows', 'party', 'previousBalance', 'invoiceAllocations'));
     }
 
     /**
@@ -1849,6 +2169,28 @@ class VoucherController extends Controller
                 \App\Models\Cheque::where('note', 'like', "%{$voucherMaster->voucher_no}%")->where('status', 'in_hand')->delete();
             }
 
+            // Reverse invoice allocations
+            $receiptVoucherId = $legacyRec ? $legacyRec->id : null;
+            $voucherMasterId = $voucherMaster ? $voucherMaster->id : null;
+            $allocations = \App\Models\VoucherInvoiceAllocation::where(function ($q) use ($receiptVoucherId, $voucherMasterId) {
+                if ($receiptVoucherId) $q->where('receipt_voucher_id', $receiptVoucherId);
+                if ($voucherMasterId) $q->orWhere('voucher_master_id', $voucherMasterId);
+            })->get();
+
+            foreach ($allocations as $alloc) {
+                if ($alloc->sale_id) {
+                    $sale = \App\Models\Sale::find($alloc->sale_id);
+                    if ($sale) {
+                        $sale->paid_amount = max(0, (float) $sale->paid_amount - (float) $alloc->allocated_amount);
+                        $sale->due_amount = max(0, (float) $sale->total_net - (float) $sale->paid_amount);
+                        $sale->cash = max(0, (float) $sale->cash - (float) $alloc->allocated_amount);
+                        $sale->change = ($sale->cash + ($sale->card ?? 0)) - (float) $sale->total_net;
+                        $sale->save();
+                    }
+                }
+                $alloc->delete();
+            }
+
             DB::commit();
 
             return back()->with('success', 'Receipt Voucher deleted successfully.');
@@ -1920,6 +2262,26 @@ class VoucherController extends Controller
             if ($legacyPayment) {
                 $journalService->reverseEntriesForSource($legacyPayment);
                 $legacyPayment->delete();
+            }
+
+            // Reverse purchase bill allocations
+            $payVoucherId = $legacyPayment ? $legacyPayment->id : null;
+            $voucherMasterId = $voucherMaster ? $voucherMaster->id : null;
+            $allocations = \App\Models\VoucherInvoiceAllocation::where(function ($q) use ($payVoucherId, $voucherMasterId) {
+                if ($payVoucherId) $q->where('payment_voucher_id', $payVoucherId);
+                if ($voucherMasterId) $q->orWhere('voucher_master_id', $voucherMasterId);
+            })->get();
+
+            foreach ($allocations as $alloc) {
+                if ($alloc->purchase_id) {
+                    $purchase = \App\Models\Purchase::find($alloc->purchase_id);
+                    if ($purchase) {
+                        $purchase->paid_amount = max(0, (float) $purchase->paid_amount - (float) $alloc->allocated_amount);
+                        $purchase->due_amount = max(0, (float) $purchase->net_amount - (float) $purchase->paid_amount);
+                        $purchase->save();
+                    }
+                }
+                $alloc->delete();
             }
 
             DB::commit();

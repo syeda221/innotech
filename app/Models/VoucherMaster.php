@@ -52,4 +52,9 @@ class VoucherMaster extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function invoiceAllocations()
+    {
+        return $this->hasMany(VoucherInvoiceAllocation::class, 'voucher_master_id');
+    }
 }

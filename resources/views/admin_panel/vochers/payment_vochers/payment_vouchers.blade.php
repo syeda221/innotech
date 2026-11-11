@@ -322,8 +322,8 @@
                                     <tr>
                                         <td>
                                             <select name="vendor_type[]" class="pv-input rowType">
-                                                <option value="" disabled selected>Select Type</option>
-                                                <option value="vendor">Vendor</option>
+                                                <option value="" disabled>Select Type</option>
+                                                <option value="vendor" selected>Vendor</option>
                                                 <option value="customer">Customer</option>
                                                 <option value="walkin">Walk-in</option>
                                                 @foreach ($AccountHeads as $head)
@@ -366,6 +366,84 @@
                             <i class="bi bi-plus-circle me-1"></i> Add Another Row
                         </button>
 
+                        <!-- Purchase Bills Settlement Section (Auto FIFO / Manual) -->
+                        <div id="purchaseSettlementSection" class="mt-4 mb-3" style="display: none;">
+                            <div class="card border-0 shadow-sm" style="background: #ffffff; border: 1.5px solid #cbd5e1 !important; border-radius: 12px; overflow: hidden;">
+                                <div class="card-header bg-white py-3 px-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 34px; height: 34px; background: #fee2e2; color: #dc2626; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                            <i class="bi bi-file-earmark-spreadsheet"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">Outstanding Purchase Bills Settlement</span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2" id="purCountBadge">0 Bills</span>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" id="purTotalDueBadge">Total Due: Rs. 0.00</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 2 Mode Options -->
+                                    <div class="d-flex align-items-center gap-2 bg-light p-1 rounded-3 border">
+                                        <span class="text-muted small fw-bold px-2"><i class="bi bi-sliders me-1"></i> Allocation Mode:</span>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <input type="radio" class="btn-check" name="allocation_mode" id="purAllocModeFifo" value="fifo" checked autocomplete="off">
+                                            <label class="btn btn-outline-primary fw-semibold px-3" for="purAllocModeFifo" title="Automatically distributes payment amount to oldest purchase bills first (FIFO)">
+                                                <i class="bi bi-lightning-charge-fill me-1 text-warning"></i> Auto FIFO
+                                            </label>
+
+                                            <input type="radio" class="btn-check" name="allocation_mode" id="purAllocModeManual" value="manual" autocomplete="off">
+                                            <label class="btn btn-outline-primary fw-semibold px-3" for="purAllocModeManual" title="Select specific purchase bills and customize payment allocation amount">
+                                                <i class="bi bi-check2-square me-1"></i> Manual Selection
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0" id="purchasesAllocationTable" style="font-size: 0.88rem;">
+                                            <thead class="table-light text-muted text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                                                <tr>
+                                                    <th class="text-center" style="width: 45px;">
+                                                        <input type="checkbox" id="selectAllPurchases" class="form-check-input" style="cursor: pointer;" title="Select / Deselect All">
+                                                    </th>
+                                                    <th>Bill / Inv #</th>
+                                                    <th>PO #</th>
+                                                    <th>Date</th>
+                                                    <th class="text-end">Bill Total</th>
+                                                    <th class="text-end">Already Paid</th>
+                                                    <th class="text-end text-danger fw-bold">Remaining Due</th>
+                                                    <th class="text-end" style="width: 170px;">This Payment (Rs.)</th>
+                                                    <th class="text-end text-muted">New Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="purchasesTableBody">
+                                                <!-- Dynamic rows populated via AJAX -->
+                                            </tbody>
+                                            <tfoot class="table-light fw-bold" style="border-top: 2px solid #e2e8f0;">
+                                                <tr>
+                                                    <td colspan="6" class="text-end">Total Settled Bills:</td>
+                                                    <td class="text-end text-danger font-monospace" id="tablePurTotalDueSum">Rs. 0.00</td>
+                                                    <td class="text-end font-monospace text-success fw-bold" id="tablePurTotalAllocatedSum" style="font-size: 0.95rem;">Rs. 0.00</td>
+                                                    <td class="text-end font-monospace text-muted" id="tablePurTotalRemainingSum">Rs. 0.00</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    <div id="noPurchasesNotice" class="p-3 text-center text-muted" style="display: none;">
+                                        <i class="bi bi-info-circle me-1 text-primary"></i> No unpaid purchase bills found for this vendor. Payment will be debited directly to vendor ledger.
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light py-2 px-3 border-top d-flex justify-content-between align-items-center" id="purchaseSettlementFooter">
+                                    <small class="text-muted" id="purAllocationModeHint">
+                                        <i class="bi bi-info-circle me-1 text-primary"></i> <strong>Auto FIFO Mode:</strong> Entered payment amount is automatically distributed to oldest unpaid purchases first.
+                                    </small>
+                                    <button type="button" class="btn btn-sm btn-outline-success fw-bold" id="btnSyncToPaymentAmount" style="display: none;">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Apply Settled Total to Amount
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- Hidden fields for backward compatibility --}}
                         <input type="hidden" name="narration_id[]" value="">
                         <input type="hidden" name="narration_text[]" value="">
@@ -407,6 +485,7 @@
             $('#payFromAccount').select2({ placeholder: "Select Account", allowClear: true, width: '100%' });
             initTypeSelect2($('.rowType'));
             initPartySelect2($('.rowParty'));
+            $('.rowType').trigger('change');
 
             // Header Source Account Logic
             $('#payFromHead').on('change', function() {
@@ -490,6 +569,7 @@
                     total += parseFloat($(this).val()) || 0;
                 });
                 $('#totalAmount').val(total.toFixed(2));
+                recalculatePurchases();
             }
             $(document).on('input', '.amount', function() {
                 calculateTotal();
@@ -544,7 +624,309 @@
                 if ($('#voucherTable tbody tr').length > 1) {
                     $(this).closest('tr').remove();
                     calculateTotal();
+                    checkAnyVendorSelected();
                 }
+            });
+
+            // =========================================================
+            // PURCHASE BILLS SETTLEMENT LOGIC (Auto FIFO & Manual Selection)
+            // =========================================================
+            let currentPurchases = [];
+            let activeVendorId = null;
+
+            function checkAnyVendorSelected() {
+                let foundVendorId = null;
+                $('#voucherTable tbody tr').each(function() {
+                    let type = $(this).find('.rowType').val();
+                    if (type === 'vendor') {
+                        let vId = $(this).find('.rowParty').val();
+                        if (vId) {
+                            foundVendorId = vId;
+                            return false; // break
+                        }
+                    }
+                });
+
+                if (foundVendorId) {
+                    if (foundVendorId !== activeVendorId) {
+                        loadVendorPurchases(foundVendorId);
+                    }
+                } else {
+                    activeVendorId = null;
+                    currentPurchases = [];
+                    $('#purchaseSettlementSection').slideUp();
+                }
+            }
+
+            $(document).on('change', '.rowParty', function() {
+                checkAnyVendorSelected();
+            });
+
+            $(document).on('change', '.rowType', function() {
+                setTimeout(checkAnyVendorSelected, 400);
+            });
+
+            function loadVendorPurchases(vendorId) {
+                if (!vendorId) return;
+                activeVendorId = vendorId;
+                $('#purchasesTableBody').html('<tr><td colspan="9" class="text-center py-3 text-muted"><span class="spinner-border spinner-border-sm me-1 text-danger"></span> Loading pending purchase bills...</td></tr>');
+                $('#purchaseSettlementSection').slideDown();
+                $('#noPurchasesNotice').hide();
+                $('#purchasesAllocationTable').show();
+
+                $.get('{{ url("vouchers/vendor-unpaid-purchases") }}/' + vendorId, function(res) {
+                    if (res && res.success && res.purchases && res.purchases.length > 0) {
+                        currentPurchases = res.purchases;
+                        $('#purCountBadge').text(res.count + (res.count === 1 ? ' Bill' : ' Bills'));
+                        $('#purTotalDueBadge').text('Total Due: Rs. ' + parseFloat(res.total_due).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                        $('#tablePurTotalDueSum').text('Rs. ' + parseFloat(res.total_due).toFixed(2));
+                        renderPurchasesTable();
+                        recalculatePurchases();
+                    } else {
+                        currentPurchases = [];
+                        $('#purCountBadge').text('0 Bills');
+                        $('#purTotalDueBadge').text('Total Due: Rs. 0.00');
+                        $('#purchasesAllocationTable').hide();
+                        $('#noPurchasesNotice').show();
+                        $('#tablePurTotalAllocatedSum').text('Rs. 0.00');
+                        $('#tablePurTotalRemainingSum').text('Rs. 0.00');
+                    }
+                }).fail(function() {
+                    $('#purchasesAllocationTable').hide();
+                    $('#noPurchasesNotice').show().html('<i class="bi bi-exclamation-triangle text-danger me-1"></i> Failed to load purchase bills.');
+                });
+            }
+
+            function renderPurchasesTable() {
+                let mode = $('input[name="allocation_mode"]:checked').val() || 'fifo';
+                let html = '';
+
+                currentPurchases.forEach(function(pur, idx) {
+                    let isReadonly = (mode === 'fifo') ? 'readonly' : '';
+                    let isChecked = (mode === 'fifo');
+                    html += `
+                    <tr class="purchase-row" data-index="${idx}" data-purchase-id="${pur.id}" data-due="${pur.due_amount}">
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input pur-checkbox" data-index="${idx}" value="${pur.id}" ${isChecked ? 'checked' : ''} ${mode === 'fifo' ? 'disabled' : ''} style="cursor: pointer;">
+                            <input type="hidden" name="purchase_ids[]" class="pur-id-input" value="${pur.id}">
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-primary border font-monospace fw-bold" style="font-size: 0.85rem;">${pur.invoice_no}</span>
+                        </td>
+                        <td class="font-monospace small text-muted">${pur.po_no || '-'}</td>
+                        <td class="text-nowrap small text-muted">${pur.date}</td>
+                        <td class="text-end font-monospace">Rs. ${parseFloat(pur.total_amount).toFixed(2)}</td>
+                        <td class="text-end font-monospace text-muted">Rs. ${parseFloat(pur.paid_amount).toFixed(2)}</td>
+                        <td class="text-end font-monospace text-danger fw-bold">Rs. ${parseFloat(pur.due_amount).toFixed(2)}</td>
+                        <td class="text-end">
+                            <input type="number" step="0.01" min="0" max="${pur.due_amount}" 
+                                name="purchase_allocated[]" 
+                                class="form-control form-control-sm text-end font-monospace fw-bold pur-alloc-input" 
+                                data-index="${idx}" 
+                                data-due="${pur.due_amount}" 
+                                value="0.00" 
+                                ${isReadonly} 
+                                style="background: ${mode === 'fifo' ? '#f8fafc' : '#ffffff'}; border-color: #cbd5e1;">
+                        </td>
+                        <td class="text-end font-monospace text-muted pur-remaining-preview">Rs. ${parseFloat(pur.due_amount).toFixed(2)}</td>
+                    </tr>`;
+                });
+
+                $('#purchasesTableBody').html(html);
+            }
+
+            function recalculatePurchases() {
+                let mode = $('input[name="allocation_mode"]:checked').val() || 'fifo';
+                let totalVoucherAmt = parseFloat($('#totalAmount').val()) || 0;
+
+                if (mode === 'fifo') {
+                    $('#purAllocationModeHint').html('<i class="bi bi-info-circle me-1 text-primary"></i> <strong>Auto FIFO Mode:</strong> Entered payment amount is automatically distributed to oldest unpaid purchase bills first.');
+                    $('#btnSyncToPaymentAmount').hide();
+
+                    let remainingVoucherAmt = totalVoucherAmt;
+                    let totalAllocatedSum = 0;
+                    let totalRemainingSum = 0;
+
+                    $('.purchase-row').each(function() {
+                        let due = parseFloat($(this).data('due')) || 0;
+                        let allocated = 0;
+
+                        if (remainingVoucherAmt > 0) {
+                            allocated = Math.min(remainingVoucherAmt, due);
+                            remainingVoucherAmt -= allocated;
+                        }
+
+                        let newRemaining = Math.max(0, due - allocated);
+                        totalAllocatedSum += allocated;
+                        totalRemainingSum += newRemaining;
+
+                        let $chk = $(this).find('.pur-checkbox');
+                        let $idInput = $(this).find('.pur-id-input');
+                        let $allocInput = $(this).find('.pur-alloc-input');
+                        let $prev = $(this).find('.pur-remaining-preview');
+
+                        $allocInput.prop('readonly', true).css('background', '#f8fafc');
+
+                        if (allocated > 0) {
+                            $chk.prop('checked', true).prop('disabled', true);
+                            $idInput.prop('disabled', false);
+                            $allocInput.prop('disabled', false).val(allocated.toFixed(2)).css('color', '#16a34a');
+                            $(this).addClass('table-success-subtle');
+                        } else {
+                            $chk.prop('checked', false).prop('disabled', true);
+                            $idInput.prop('disabled', true);
+                            $allocInput.prop('disabled', false).val('0.00').css('color', '#64748b');
+                            $(this).removeClass('table-success-subtle');
+                        }
+
+                        if (newRemaining <= 0.001 && allocated > 0) {
+                            $prev.html('<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2"></i> Fully Paid</span>');
+                        } else {
+                            $prev.text('Rs. ' + newRemaining.toFixed(2));
+                        }
+                    });
+
+                    $('#tablePurTotalAllocatedSum').text('Rs. ' + totalAllocatedSum.toFixed(2));
+                    $('#tablePurTotalRemainingSum').text('Rs. ' + totalRemainingSum.toFixed(2));
+
+                } else {
+                    // MANUAL SELECTION MODE
+                    $('#purAllocationModeHint').html('<i class="bi bi-pencil-square me-1 text-primary"></i> <strong>Manual Mode:</strong> Check specific purchase bills and customize the amount allocated to each.');
+                    $('#btnSyncToPaymentAmount').show();
+
+                    let totalAllocatedSum = 0;
+                    let totalRemainingSum = 0;
+
+                    $('.purchase-row').each(function() {
+                        let due = parseFloat($(this).data('due')) || 0;
+                        let $chk = $(this).find('.pur-checkbox');
+                        let $idInput = $(this).find('.pur-id-input');
+                        let $allocInput = $(this).find('.pur-alloc-input');
+                        let $prev = $(this).find('.pur-remaining-preview');
+
+                        $chk.prop('disabled', false);
+
+                        if ($chk.is(':checked')) {
+                            $allocInput.prop('readonly', false).prop('disabled', false).css('background', '#ffffff').css('color', '#16a34a');
+                            $idInput.prop('disabled', false);
+
+                            let currentAlloc = parseFloat($allocInput.val()) || 0;
+                            if (currentAlloc <= 0) {
+                                currentAlloc = due;
+                                $allocInput.val(due.toFixed(2));
+                            } else if (currentAlloc > due) {
+                                currentAlloc = due;
+                                $allocInput.val(due.toFixed(2));
+                            }
+
+                            let newRemaining = Math.max(0, due - currentAlloc);
+                            totalAllocatedSum += currentAlloc;
+                            totalRemainingSum += newRemaining;
+
+                            if (newRemaining <= 0.001 && currentAlloc > 0) {
+                                $prev.html('<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2"></i> Fully Paid</span>');
+                            } else {
+                                $prev.text('Rs. ' + newRemaining.toFixed(2));
+                            }
+                            $(this).addClass('table-success-subtle');
+                        } else {
+                            $allocInput.prop('readonly', true).val('0.00').css('background', '#f8fafc').css('color', '#64748b');
+                            $idInput.prop('disabled', true);
+                            totalRemainingSum += due;
+                            $prev.text('Rs. ' + due.toFixed(2));
+                            $(this).removeClass('table-success-subtle');
+                        }
+                    });
+
+                    $('#tablePurTotalAllocatedSum').text('Rs. ' + totalAllocatedSum.toFixed(2));
+                    $('#tablePurTotalRemainingSum').text('Rs. ' + totalRemainingSum.toFixed(2));
+                }
+            }
+
+            // Allocation Mode Switch Change
+            $('input[name="allocation_mode"]').on('change', function() {
+                let mode = $(this).val();
+                if (mode === 'manual') {
+                    $('.pur-checkbox').prop('disabled', false);
+                    $('.pur-alloc-input').prop('readonly', false).css('background', '#ffffff');
+                } else {
+                    $('.pur-checkbox').prop('disabled', true);
+                    $('.pur-alloc-input').prop('readonly', true).css('background', '#f8fafc');
+                }
+                recalculatePurchases();
+            });
+
+            // Checkbox click in Manual Mode
+            $(document).on('change', '.pur-checkbox', function() {
+                let $row = $(this).closest('.purchase-row');
+                let due = parseFloat($row.data('due')) || 0;
+                let $allocInput = $row.find('.pur-alloc-input');
+
+                if ($(this).is(':checked')) {
+                    $allocInput.val(due.toFixed(2));
+                } else {
+                    $allocInput.val('0.00');
+                }
+                recalculatePurchases();
+            });
+
+            // Select All Purchases in Manual Mode
+            $('#selectAllPurchases').on('change', function() {
+                let isChecked = $(this).is(':checked');
+                let mode = $('input[name="allocation_mode"]:checked').val() || 'fifo';
+                if (mode === 'manual') {
+                    $('.pur-checkbox').each(function() {
+                        $(this).prop('checked', isChecked);
+                        let $row = $(this).closest('.purchase-row');
+                        let due = parseFloat($row.data('due')) || 0;
+                        $row.find('.pur-alloc-input').val(isChecked ? due.toFixed(2) : '0.00');
+                    });
+                    recalculatePurchases();
+                }
+            });
+
+            // Manual Allocation Input changes
+            $(document).on('input change', '.pur-alloc-input', function() {
+                let due = parseFloat($(this).data('due')) || 0;
+                let val = parseFloat($(this).val()) || 0;
+
+                if (val < 0) {
+                    $(this).val('0.00');
+                } else if (val > due) {
+                    $(this).val(due.toFixed(2));
+                }
+                recalculatePurchases();
+            });
+
+            // Match Manual Settled Total to Voucher Payment Row Amount button
+            $('#btnSyncToPaymentAmount').on('click', function() {
+                let totalAllocated = 0;
+                $('.purchase-row').each(function() {
+                    if ($(this).find('.pur-checkbox').is(':checked')) {
+                        totalAllocated += parseFloat($(this).find('.pur-alloc-input').val()) || 0;
+                    }
+                });
+
+                if (totalAllocated > 0) {
+                    let $firstAmount = $('#voucherTable tbody tr:first').find('.amount');
+                    $firstAmount.val(totalAllocated.toFixed(2));
+                    calculateTotal();
+                }
+            });
+
+            // Before submit, ensure inputs for allocated purchases are enabled
+            $('#paymentForm').on('submit', function() {
+                $('.purchase-row').each(function() {
+                    let isChecked = $(this).find('.pur-checkbox').is(':checked');
+                    let allocVal = parseFloat($(this).find('.pur-alloc-input').val()) || 0;
+                    if (isChecked && allocVal > 0) {
+                        $(this).find('.pur-id-input').prop('disabled', false);
+                        $(this).find('.pur-alloc-input').prop('disabled', false);
+                    } else {
+                        $(this).find('.pur-id-input').prop('disabled', true);
+                        $(this).find('.pur-alloc-input').prop('disabled', true);
+                    }
+                });
             });
         });
     </script>

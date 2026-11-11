@@ -279,6 +279,32 @@
             In Words: <strong id="amountInWords">{{ $voucher->total_amount }}</strong>
         </div>
 
+        @if(isset($invoiceAllocations) && $invoiceAllocations->count() > 0)
+        <div style="margin-top: 10px; margin-bottom: 4px; font-weight: bold; font-size: 11px; text-transform: uppercase;">
+            Settled Purchase Bills:
+        </div>
+        <table class="items-table" style="font-size: 10px; margin-bottom: 8px;">
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Bill / PO #</th>
+                    <th style="width: 20%; text-align: right;">Total</th>
+                    <th style="width: 25%; text-align: right;">Settled</th>
+                    <th style="width: 30%; text-align: right;">Remaining</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($invoiceAllocations as $alloc)
+                <tr>
+                    <td><strong>{{ $alloc->invoice_no }}</strong></td>
+                    <td class="text-end">{{ number_format($alloc->invoice_amount, 2) }}</td>
+                    <td class="text-end" style="font-weight: bold; color: #16a34a;">{{ number_format($alloc->allocated_amount, 2) }}</td>
+                    <td class="text-end">{{ number_format($alloc->remaining_due, 2) }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @endif
+
         <div class="divider"></div>
 
         <!-- Summary -->
