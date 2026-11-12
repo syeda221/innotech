@@ -343,7 +343,7 @@
                                     </div> -->
                                     <div class="col-md-1">
                                         <label class="form-label mb-1">Bill#</label>
-                                        <input type="text" class="form-control" name="bill_no" id="filter_bill_no" placeholder="PUR-...">
+                                        <input type="text" class="form-control" name="bill_no" id="filter_bill_no" placeholder="GRN-...">
                                     </div>
                                     <div class="col-md-1">
                                         <label class="form-label mb-1">M.Bill#</label>

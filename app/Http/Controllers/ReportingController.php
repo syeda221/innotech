@@ -2349,8 +2349,8 @@ class ReportingController extends Controller
                         $invoiceUrl = $allocData['first_url'];
                         $invoiceBadgesHtml = $allocData['badges_html'];
                     } else {
-                        if (preg_match('/PUR-(\S+)/', $desc, $matches)) {
-                            $ref = 'PUR-' . $matches[1];
+                        if (preg_match('/(GRN|PUR)-(\S+)/', $desc, $matches)) {
+                            $ref = $matches[1] . '-' . $matches[2];
                         } elseif (preg_match('/Payment #(\S+)/', $desc, $matches)) {
                             $ref = $matches[1];
                         } elseif (preg_match('/Purchase #(\S+)/', $desc, $matches)) {
@@ -2462,8 +2462,8 @@ class ReportingController extends Controller
                 $invoiceUrl = $allocData['first_url'];
                 $invoiceBadgesHtml = $allocData['badges_html'];
             } else {
-                if (preg_match('/PUR-(\S+)/', $desc, $matches)) {
-                    $ref = 'PUR-' . $matches[1];
+                if (preg_match('/(GRN|PUR)-(\S+)/', $desc, $matches)) {
+                    $ref = $matches[1] . '-' . $matches[2];
                 } elseif (preg_match('/Payment #(\S+)/', $desc, $matches)) {
                     $ref = $matches[1];
                 } elseif (preg_match('/Purchase #(\S+)/', $desc, $matches)) {

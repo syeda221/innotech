@@ -135,7 +135,7 @@
     <div class="divider"></div>
 
     <div class="info-row">
-        <span>Inv #: {{ $purchase->invoice_no ?: ('PUR-' . str_pad($purchase->id, 3, '0', STR_PAD_LEFT)) }}</span>
+        <span>Inv #: {{ $purchase->invoice_no ?: ('GRN-' . str_pad($purchase->id, 3, '0', STR_PAD_LEFT)) }}</span>
         <span>{{ $purchase->purchase_date ? \Carbon\Carbon::parse($purchase->purchase_date)->format('d/M/Y') : '-' }}</span>
     </div>
     <div class="info-row">

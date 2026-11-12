@@ -182,10 +182,10 @@ class PurchaseController extends Controller
             $q->whereIn('name', ['Cash', 'Bank']);
         })->where('status', 1)->orderBy('title')->get();
 
-        $lastInvoice = Purchase::latest('id')->value('invoice_no');
+        $lastInvoice = Purchase::where('invoice_no', 'LIKE', 'GRN-%')->latest('id')->value('invoice_no');
         $nextInvoice = $lastInvoice
-            ? 'PUR-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
-            : 'PUR-001';
+            ? 'GRN-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
+            : 'GRN-001';
 
         // Return new V2 view
         $purchaseGstEnabled = (bool) \App\Models\Setting::get('purchase_gst_enabled', '1');
@@ -267,10 +267,10 @@ class PurchaseController extends Controller
             }
 
             // 2. Create Header
-            $lastInvoice = Purchase::latest('id')->value('invoice_no');
+            $lastInvoice = Purchase::where('invoice_no', 'LIKE', 'GRN-%')->latest('id')->value('invoice_no');
             $nextInvoice = $lastInvoice
-                ? 'PUR-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
-                : 'PUR-001';
+                ? 'GRN-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
+                : 'GRN-001';
 
             $purchase = Purchase::create([
                 'branch_id' => 1,
@@ -749,10 +749,10 @@ class PurchaseController extends Controller
         $purchase = DB::transaction(function () use ($validated, $request, $gatepass) {
 
             // invoice number
-            $lastInvoice = Purchase::latest('id')->value('invoice_no');
+            $lastInvoice = Purchase::where('invoice_no', 'LIKE', 'GRN-%')->latest('id')->value('invoice_no');
             $nextInvoice = $lastInvoice
-                ? 'PUR-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
-                : 'PUR-001';
+                ? 'GRN-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
+                : 'GRN-001';
 
             $user = auth()->user();
             $canSelectWarehouse = $user && (

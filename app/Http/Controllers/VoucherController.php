@@ -561,7 +561,7 @@ class VoucherController extends Controller
                     $due = (float) ($pur->due_amount > 0 ? $pur->due_amount : max(0, $total - $paid));
                     return [
                         'id' => $pur->id,
-                        'invoice_no' => $pur->invoice_no ?: ('PUR-' . str_pad($pur->id, 4, '0', STR_PAD_LEFT)),
+                        'invoice_no' => $pur->invoice_no ?: ('GRN-' . str_pad($pur->id, 4, '0', STR_PAD_LEFT)),
                         'po_no' => $pur->purchase_order_no ?: '-',
                         'date' => $pur->purchase_date ? $pur->purchase_date->format('d-M-Y') : '-',
                         'raw_date' => $pur->purchase_date ? $pur->purchase_date->format('Y-m-d') : '',
@@ -1182,7 +1182,7 @@ class VoucherController extends Controller
                             $purchase->due_amount = $newDue;
                             $purchase->save();
 
-                            $billNo = $purchase->invoice_no ?: ($purchase->purchase_order_no ?: ('PUR-' . str_pad($purchase->id, 4, '0', STR_PAD_LEFT)));
+                            $billNo = $purchase->invoice_no ?: ($purchase->purchase_order_no ?: ('GRN-' . str_pad($purchase->id, 4, '0', STR_PAD_LEFT)));
                             $allocSummaryParts[] = $billNo . ': Rs ' . number_format($allocAmt, 2);
 
                             \App\Models\VoucherInvoiceAllocation::create([
