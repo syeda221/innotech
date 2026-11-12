@@ -161,6 +161,18 @@ class WarehouseStockController extends Controller
                 $warehouseStock->remarks = $request->remarks;
                 $warehouseStock->save();
 
+                if ($warehouseStock->product) {
+                    app(\App\Services\StockBalanceService::class)->syncBatchStockOnDelta(
+                        $warehouseStock->product,
+                        (int) $warehouseStock->warehouse_id,
+                        (float) $delta,
+                        null,
+                        null,
+                        null,
+                        'Manual Stock Edit via Modal'
+                    );
+                }
+
                 // Log Movement safely without non-existent warehouse_id column
                 DB::table('stock_movements')->insert([
                     'product_id' => $warehouseStock->product_id,

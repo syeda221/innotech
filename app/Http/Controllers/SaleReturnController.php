@@ -379,7 +379,8 @@ class SaleReturnController extends Controller
                     ]);
                 }
 
-                // Restore serials back to available in the return warehouse if original sale had serials
+                // Restore serials & batches back to available in the return warehouse
+                $origItem = null;
                 if ($sale) {
                     $origItem = $sale->items->where('product_id', $productId)->first();
                     if ($origItem && !empty($origItem->serials)) {
@@ -396,6 +397,18 @@ class SaleReturnController extends Controller
                     }
                 }
 
+                if ($product) {
+                    app(\App\Services\StockBalanceService::class)->syncBatchStockOnDelta(
+                        $product,
+                        (int) $validated['warehouse_id'],
+                        (float) $stockQty,
+                        null,
+                        $origItem->batch_id ?? null,
+                        $origItem->batch_no ?? null,
+                        "Sale Return #{$nextInvoice}"
+                    );
+                }
+
                 // Stock Movement (IN - goods returned to warehouse)
                 $movements[] = [
                     'product_id' => $productId,
@@ -403,7 +416,7 @@ class SaleReturnController extends Controller
                     'qty' => $stockQty,
                     'ref_type' => 'SALE_RETURN',
                     'ref_id' => $return->id,
-                    'note' => "Return #{$nextInvoice}",
+                    'note' => "Return #{$nextInvoice} | Warehouse #{$validated['warehouse_id']}",
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];

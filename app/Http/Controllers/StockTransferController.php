@@ -66,14 +66,24 @@ class StockTransferController extends Controller
                         ->lockForUpdate()
                         ->first();
 
-                    $productName = Product::find($productId)->item_name ?? 'Product #'.$productId;
+                    $prod = Product::find($productId);
+                    $productName = $prod->item_name ?? 'Product #'.$productId;
+                    $ppb = ($prod && $prod->pieces_per_box > 0) ? (float) $prod->pieces_per_box : 1.0;
+                    $transferredPieces = (float) $totalQty * $ppb;
 
-                    if (! $sourceStock || $sourceStock->quantity < $totalQty) {
-                        throw new \Exception("Insufficient stock for {$productName}. Requested Total: {$totalQty}, Available: ".($sourceStock->quantity ?? 0));
+                    $sourcePieces = $sourceStock
+                        ? ($sourceStock->total_pieces != 0 ? (float) $sourceStock->total_pieces : ((float) $sourceStock->quantity * $ppb))
+                        : 0.0;
+
+                    if (! $sourceStock || $sourcePieces < $transferredPieces) {
+                        $availBoxes = $ppb > 0 ? ($sourcePieces / $ppb) : $sourcePieces;
+                        throw new \Exception("Insufficient stock for {$productName}. Requested Total: {$totalQty}, Available: " . round($availBoxes, 2));
                     }
 
-                    // Reduce stock from source
-                    $sourceStock->quantity -= $totalQty;
+                    // Reduce stock from source (both total_pieces and quantity)
+                    $newSourcePieces = max(0.0, $sourcePieces - $transferredPieces);
+                    $sourceStock->total_pieces = $newSourcePieces;
+                    $sourceStock->quantity = $ppb > 0 ? ($newSourcePieces / $ppb) : $newSourcePieces;
                     $sourceStock->save();
 
                     // Setup destination
@@ -85,11 +95,35 @@ class StockTransferController extends Controller
                             ],
                             [
                                 'quantity' => 0,
+                                'total_pieces' => 0,
                                 'price' => $sourceStock->price ?? 0,
                             ]
                         );
-                        $destStock->quantity += $totalQty;
+                        $destPieces = ($destStock->total_pieces != 0 ? (float) $destStock->total_pieces : ((float) $destStock->quantity * $ppb)) + $transferredPieces;
+                        $destStock->total_pieces = $destPieces;
+                        $destStock->quantity = $ppb > 0 ? ($destPieces / $ppb) : $destPieces;
                         $destStock->save();
+                    }
+
+                    if ($prod) {
+                        $stockService = app(\App\Services\StockBalanceService::class);
+                        $stockService->syncBatchStockOnDelta($prod, (int) $fromWarehouse, -1 * $transferredPieces, null, null, null, 'Transfer Out');
+                        if (! $toShop && $toWarehouse) {
+                            $stockService->syncBatchStockOnDelta($prod, (int) $toWarehouse, $transferredPieces, null, null, null, 'Transfer In');
+
+                            if ($prod->tracking_type === 'serial') {
+                                $serialIds = \App\Models\ProductSerial::where('product_id', $productId)
+                                    ->where('warehouse_id', $fromWarehouse)
+                                    ->where('status', 'available')
+                                    ->orderBy('id', 'asc')
+                                    ->limit((int) $transferredPieces)
+                                    ->pluck('id');
+                                if ($serialIds->isNotEmpty()) {
+                                    \App\Models\ProductSerial::whereIn('id', $serialIds)
+                                        ->update(['warehouse_id' => $toWarehouse]);
+                                }
+                            }
+                        }
                     }
 
                     // Record Transfer (One record per aggregated product, or one per line? Plan implies logical transfer.

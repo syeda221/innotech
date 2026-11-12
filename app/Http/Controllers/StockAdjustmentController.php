@@ -387,6 +387,17 @@ class StockAdjustmentController extends Controller
         $warehouseStock->remarks = 'Adjusted via Stock Adjustment module';
         $warehouseStock->save();
 
+        // Keep ProductBatch synced when adjustment changes physical stock
+        app(\App\Services\StockBalanceService::class)->syncBatchStockOnDelta(
+            $product,
+            (int) $data['warehouse_id'],
+            (float) $deltaQty,
+            $variantKey ?: null,
+            null,
+            null,
+            'Stock Adjustment: ' . ($data['reason'] ?? '')
+        );
+
         // Log Stock Movement
         DB::table('stock_movements')->insert([
             'product_id'   => $product->id,

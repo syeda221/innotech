@@ -17,38 +17,29 @@ class WarehouseController extends Controller
     public function getWarehouses(Request $request)
     {
         $productId = $request->input('product_id');
+        $variantData = $request->input('variant_data') ?? $request->input('variant_key');
+        $product = $productId ? Product::find($productId) : null;
+        $stockService = app(\App\Services\StockBalanceService::class);
 
         // Get all active warehouses first
         $allWarehouses = Warehouse::orderBy('warehouse_name')->get();
 
-        // Get stock entries for this product
-        $warehouseStocks = WarehouseStock::with(['stockWarehouse', 'product'])
-            ->where('product_id', $productId)
-            ->get()
-            ->keyBy('warehouse_id');
+        $ppb = ($product && $product->pieces_per_box > 0) ? (float) $product->pieces_per_box : 1.0;
+        $sizeMode = $product ? ($product->size_mode ?: 'std') : 'std';
 
-        $response = $allWarehouses->map(function ($warehouse) use ($warehouseStocks, $productId) {
-            $ws = $warehouseStocks->get($warehouse->id);
-            $stockVal = 0;
-
-            if ($ws) {
-                $ppb = ($ws->product && $ws->product->pieces_per_box > 0) ? $ws->product->pieces_per_box : 1;
-
-                if ($ws->total_pieces != 0) {
-                    $stockVal = $ws->total_pieces;
-                } else {
-                    $stockVal = $ws->quantity * $ppb;
-                }
-            }
+        $response = $allWarehouses->map(function ($warehouse) use ($product, $variantData, $stockService, $ppb, $sizeMode) {
+            $stockVal = $product
+                ? $stockService->cleanNumber($stockService->getAvailableForSaleItem($product, $warehouse->id, is_string($variantData) ? $variantData : ($variantData ? json_encode($variantData) : null)))
+                : 0.0;
 
             return [
                 'warehouse_id' => $warehouse->id,
                 'warehouse_name' => $warehouse->warehouse_name,
                 'location' => $warehouse->location ?? '',
                 'stock' => $stockVal, // Total pieces
-                'boxes' => $ws ? ($stockVal / $ppb) : 0,
-                'ppb' => $ws && $ws->product ? $ws->product->pieces_per_box : 1,
-                'size_mode' => $ws && $ws->product ? $ws->product->size_mode : 'std',
+                'boxes' => $ppb > 0 ? ($stockVal / $ppb) : 0,
+                'ppb' => $product ? ($product->pieces_per_box ?? 1) : 1,
+                'size_mode' => $sizeMode,
             ];
         });
 

@@ -400,6 +400,44 @@
         </div>
     </div>
 
+    {{-- Invoice-wise Profit --}}
+    <div class="card border-0 shadow-sm mb-3 rounded-3 bg-white">
+        <div class="card-header bg-light py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="fw-bold text-dark fs-6"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Invoice-wise Profit</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-secondary text-white small" id="invoiceCount">0 invoices</span>
+                <span class="badge bg-success text-white small" id="invoiceTotalProfitBadge">Profit: Rs 0</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+
+            {{-- DESKTOP TABLE VIEW (d-none d-md-block) --}}
+            <div class="d-none d-md-block">
+                <div class="sale-table-wrap border-0 rounded-0" style="height: auto; max-height: 460px;">
+                    <table id="invoiceProfitTable" class="table table-bordered table-hover align-middle mb-0 report-table" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 130px;">INVOICE #</th>
+                                <th style="width: 155px;">DATE</th>
+                                <th>CUSTOMER</th>
+                                <th class="text-center" style="width: 85px;">ITEMS</th>
+                                <th class="text-end" style="width: 125px;">REVENUE</th>
+                                <th class="text-end" style="width: 125px;">COGS</th>
+                                <th class="text-end" style="width: 155px;">NET PROFIT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoiceProfitBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- MOBILE CARDS CONTAINER (d-md-none) --}}
+            <div class="d-md-none p-2" id="mobInvoiceProfitContainer">
+            </div>
+
+        </div>
+    </div>
+
 </div>
 @endsection
 
@@ -436,7 +474,93 @@ $(document).ready(function() {
         ]
     });
 
+    var invoiceProfitTable = $('#invoiceProfitTable').DataTable({
+        paging: true,
+        pageLength: 15,
+        searching: true,
+        ordering: true,
+        order: [[6, 'desc']],
+        language: { search: '', searchPlaceholder: 'Search invoice, customer...' },
+        columns: [
+            {
+                data: 'invoice_no',
+                render: function(data, type, row) {
+                    if (type === 'display') {
+                        return `<a href="${row.invoice_url}" target="_blank" class="fw-bold text-primary font-monospace text-decoration-none">${escHtml(data)}</a>` +
+                               `<div class="text-muted" style="font-size:10px;">${escHtml(row.source)}</div>`;
+                    }
+                    return data;
+                }
+            },
+            {
+                data: 'sale_timestamp',
+                render: function(data, type, row) {
+                    if (type === 'display') {
+                        return `<span class="text-dark" style="font-size:12px;">${escHtml(row.sale_date)}</span>`;
+                    }
+                    return data;
+                }
+            },
+            {
+                data: 'customer_name',
+                render: function(data, type, row) {
+                    if (type === 'display') {
+                        return `<div class="fw-bold text-dark" style="font-size:12.5px;">${escHtml(data)}</div>` +
+                               `<div class="text-muted" style="font-size:10px;">${escHtml(row.customer_code)}</div>`;
+                    }
+                    return data + ' ' + row.customer_code;
+                }
+            },
+            {
+                data: 'items_count',
+                className: 'text-center',
+                render: function(data, type, row) {
+                    if (type === 'display') {
+                        let retTag = row.has_returns ? `<div class="text-danger" style="font-size:10px;">Ret: Rs ${fmt(row.returned_amount)}</div>` : '';
+                        return `<span class="fw-bold text-dark">${data}</span>${retTag}`;
+                    }
+                    return data;
+                }
+            },
+            {
+                data: 'revenue',
+                className: 'text-end',
+                render: function(data, type) {
+                    return type === 'display' ? `<span class="fw-semibold">Rs ${fmt(data)}</span>` : data;
+                }
+            },
+            {
+                data: 'cogs',
+                className: 'text-end',
+                render: function(data, type) {
+                    return type === 'display' ? `Rs ${fmt(data)}` : data;
+                }
+            },
+            {
+                data: 'profit',
+                className: 'text-end',
+                render: function(data, type, row) {
+                    if (type === 'display') {
+                        let isPos = parseFloat(data) >= 0;
+                        let color = isPos ? '#059669' : '#dc2626';
+                        let bg = isPos ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+                        let sign = data < 0 ? '-' : '';
+                        return `<span class="badge p-1.5 px-2" style="background:${bg}; color:${color}; font-size:12px; font-weight:700;">${sign}Rs ${fmt(Math.abs(data))}</span>` +
+                               `<div class="text-muted" style="font-size:10px;">Margin: ${row.margin}%</div>`;
+                    }
+                    return data;
+                }
+            }
+        ]
+    });
+
     var myChart = null;
+
+    function escHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, function(m) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+        });
+    }
 
     function fmt(n) {
         return Math.round(parseFloat(n)).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
@@ -555,6 +679,56 @@ $(document).ready(function() {
 
         // Top 10 Customers
         renderTopCustomers(data.top_customers || []);
+
+        // Invoice-wise Profit
+        renderInvoiceProfits(data.invoice_profits || []);
+    }
+
+    function renderInvoiceProfits(invoices) {
+        invoiceProfitTable.clear();
+        var mobInvHtml = '';
+        var totalInvProfit = 0;
+
+        invoices.forEach(function(inv) {
+            totalInvProfit += parseFloat(inv.profit || 0);
+            invoiceProfitTable.row.add(inv);
+
+            var isPos = parseFloat(inv.profit) >= 0;
+            var profitColor = isPos ? '#059669' : '#dc2626';
+            var profitBg = isPos ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+            var profitSign = inv.profit < 0 ? '-' : '';
+
+            mobInvHtml += `
+                <div class="mob-card p-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <a href="${inv.invoice_url}" target="_blank" class="badge bg-light text-primary border font-monospace fw-bold text-decoration-none" style="font-size: 11px;">${escHtml(inv.invoice_no)}</a>
+                            <span class="text-muted ms-1" style="font-size:10px;">${escHtml(inv.sale_date)}</span>
+                        </div>
+                        <span class="badge p-1 px-2" style="background:${profitBg}; color:${profitColor}; font-size:11px; font-weight:700;">
+                            ${profitSign}Rs ${fmt(Math.abs(inv.profit))}
+                        </span>
+                    </div>
+                    <div class="fw-bold text-dark mb-1" style="font-size:12.5px;">${escHtml(inv.customer_name)} <span class="text-muted fw-normal" style="font-size:10px;">(${escHtml(inv.customer_code)})</span></div>
+                    <div class="border-top pt-1 mt-1">
+                        <div class="row g-1 text-center" style="font-size: 10.5px;">
+                            <div class="col-4 border-end"><span class="text-muted d-block">Revenue</span><strong>Rs ${fmt(inv.revenue)}</strong></div>
+                            <div class="col-4 border-end"><span class="text-muted d-block">COGS</span><strong>Rs ${fmt(inv.cogs)}</strong></div>
+                            <div class="col-4"><span class="text-muted d-block">Margin</span><strong>${inv.margin}%</strong></div>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        invoiceProfitTable.draw();
+        $('#invoiceCount').text(invoices.length + ' invoices');
+        var totalSign = totalInvProfit < 0 ? '-' : '';
+        $('#invoiceTotalProfitBadge')
+            .text('Profit: ' + totalSign + 'Rs ' + fmt(Math.abs(totalInvProfit)))
+            .toggleClass('bg-success', totalInvProfit >= 0)
+            .toggleClass('bg-danger', totalInvProfit < 0);
+
+        $('#mobInvoiceProfitContainer').html(mobInvHtml || '<div class="text-center text-muted py-3 small">No invoice data for this period</div>');
     }
 
     function renderTopCustomers(customers) {

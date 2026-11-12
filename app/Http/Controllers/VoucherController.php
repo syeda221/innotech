@@ -452,6 +452,17 @@ class VoucherController extends Controller
         ]);
     }
 
+    private function resolveSalePaidAndDue(\App\Models\Sale $sale): array
+    {
+        $total = (float) ($sale->total_net ?? 0);
+        $recordedPaid = (float) ($sale->paid_amount ?? 0);
+        $cashCardPaid = min($total, max(0, (float) ($sale->cash ?? 0) + (float) ($sale->card ?? 0)));
+        $paid = max($recordedPaid, $cashCardPaid);
+        $due = max(0, round($total - $paid, 2));
+
+        return [$total, $paid, $due];
+    }
+
     public function customerUnpaidInvoices(Request $request, $customerId)
     {
         try {
@@ -466,6 +477,8 @@ class VoucherController extends Controller
                 ]);
             }
 
+            \App\Models\Cheque::reconcileUnreversedBouncedForCustomer($customer->id);
+
             $invoices = \App\Models\Sale::where('customer_id', $customerId)
                 ->where(function ($q) {
                     $q->whereNull('sale_status')
@@ -479,9 +492,7 @@ class VoucherController extends Controller
                 ->orderBy('id', 'asc')
                 ->get()
                 ->map(function ($sale) {
-                    $total = (float) $sale->total_net;
-                    $paid = (float) $sale->paid_amount;
-                    $due = (float) ($sale->due_amount > 0 ? $sale->due_amount : max(0, $total - $paid));
+                    [$total, $paid, $due] = $this->resolveSalePaidAndDue($sale);
                     return [
                         'id' => $sale->id,
                         'invoice_no' => $sale->invoice_no ?: ('INV-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT)),
@@ -776,6 +787,7 @@ class VoucherController extends Controller
                 $vType = strtolower($request->vendor_type);
                 if (in_array($vType, ['customer', 'walkin']) && !empty($request->vendor_id)) {
                     $customerId = $request->vendor_id;
+                    \App\Models\Cheque::reconcileUnreversedBouncedForCustomer($customerId);
                     $allocationsToSave = [];
 
                     if ($request->has('invoice_ids') && is_array($request->invoice_ids)) {
@@ -796,7 +808,10 @@ class VoucherController extends Controller
                             ->where(function ($q) {
                                 $q->whereNull('sale_status')->orWhereNotIn('sale_status', ['quotation', 'returned']);
                             })
-                            ->where('due_amount', '>', 0)
+                            ->where(function ($q) {
+                                $q->where('due_amount', '>', 0)
+                                  ->orWhereRaw('(COALESCE(total_net, 0) - COALESCE(paid_amount, 0)) > 0');
+                            })
                             ->orderBy('created_at', 'asc')
                             ->orderBy('id', 'asc')
                             ->get();
@@ -804,7 +819,9 @@ class VoucherController extends Controller
                         $remTotal = (float) $request->total_amount;
                         foreach ($unpaidSales as $us) {
                             if ($remTotal <= 0) break;
-                            $take = min($remTotal, (float) $us->due_amount);
+                            [, , $usDue] = $this->resolveSalePaidAndDue($us);
+                            if ($usDue <= 0) continue;
+                            $take = min($remTotal, $usDue);
                             if ($take > 0) {
                                 $allocationsToSave[] = [
                                     'sale_id' => $us->id,
@@ -819,15 +836,15 @@ class VoucherController extends Controller
                     foreach ($allocationsToSave as $alloc) {
                         $sale = \App\Models\Sale::find($alloc['sale_id']);
                         if ($sale) {
-                            $prevDue = (float) $sale->due_amount;
+                            [$totalNet, $basePaid, $prevDue] = $this->resolveSalePaidAndDue($sale);
                             $allocAmt = (float) $alloc['amount'];
-                            $newPaid = (float) $sale->paid_amount + $allocAmt;
-                            $newDue = max(0, (float) $sale->total_net - $newPaid);
+                            $newPaid = $basePaid + $allocAmt;
+                            $newDue = max(0, round($totalNet - $newPaid, 2));
 
                             $sale->paid_amount = $newPaid;
                             $sale->due_amount = $newDue;
-                            $sale->cash = (float) $sale->cash + $allocAmt;
-                            $sale->change = ($sale->cash + ($sale->card ?? 0)) - (float) $sale->total_net;
+                            $sale->cash = (float) ($sale->cash ?? 0) + $allocAmt;
+                            $sale->change = ($sale->cash + ($sale->card ?? 0)) - $totalNet;
                             $sale->save();
 
                             $invNo = $sale->invoice_no ?: ('INV-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT));

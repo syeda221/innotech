@@ -1893,9 +1893,12 @@
                             </div>
                                                         @php
                                 $allTerms = isset($termsAndConditions) ? $termsAndConditions : \App\Models\TermsAndCondition::active()->ordered()->get();
-                                $savedTerms = isset($sale) && !empty($sale->selected_terms) ? (is_array($sale->selected_terms) ? $sale->selected_terms : json_decode($sale->selected_terms, true)) : null;
+                                $savedTerms = (isset($sale) && !is_null($sale->selected_terms))
+                                    ? (is_array($sale->selected_terms) ? $sale->selected_terms : (json_decode($sale->selected_terms, true) ?? []))
+                                    : null;
                             @endphp
                             @if($allTerms->count() > 0)
+                                <input type="hidden" name="terms_submitted" value="1">
                                 <div class="mt-3 pt-2 border-top">
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <label class="field-label mb-0 fw-bold text-dark" style="font-size: 12px;">

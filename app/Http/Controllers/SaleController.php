@@ -923,6 +923,10 @@ class SaleController extends Controller
     public function saleinvoice($id)
     {
         $sale = Sale::with(['customer_relation.salesOfficer'])->findOrFail($id);
+        if ($sale->customer_id) {
+            \App\Models\Cheque::reconcileUnreversedBouncedForCustomer($sale->customer_id);
+            $sale->refresh();
+        }
         $items = $this->_getSaleItems($sale);
         $isEstimate = request()->query('type') === 'estimate';
 
@@ -953,7 +957,8 @@ class SaleController extends Controller
                 $previousBalance = 0;
             }
         }
-        $currentBalance = $previousBalance + $sale->total_net;
+        $paidOnSale = min((float) ($sale->total_net ?? 0), max(0, (float) ($sale->cash ?? 0) + (float) ($sale->card ?? 0)));
+        $currentBalance = $previousBalance + (float) ($sale->total_net ?? 0) - $paidOnSale;
 
         return view('admin_panel.sale.saleinvoice', [
             'sale' => $sale,
@@ -1089,6 +1094,10 @@ class SaleController extends Controller
     public function salereceipt($id)
     {
         $sale = Sale::with('customer_relation')->findOrFail($id);
+        if ($sale->customer_id) {
+            \App\Models\Cheque::reconcileUnreversedBouncedForCustomer($sale->customer_id);
+            $sale->refresh();
+        }
         $items = $this->_getSaleItems($sale);
 
         // Logic for Previous Balance (copied from saleinvoice)
@@ -1113,7 +1122,8 @@ class SaleController extends Controller
                 $previousBalance = $balanceService->getCustomerBalance($sale->customer_id);
             }
         }
-        $currentBalance = $previousBalance + $sale->total_net;
+        $paidOnSale = min((float) ($sale->total_net ?? 0), max(0, (float) ($sale->cash ?? 0) + (float) ($sale->card ?? 0)));
+        $currentBalance = $previousBalance + (float) ($sale->total_net ?? 0) - $paidOnSale;
 
         return view('admin_panel.sale.salereceipt', [
             'sale' => $sale,
@@ -1182,7 +1192,11 @@ class SaleController extends Controller
             $sale->po_date = $request->filled('po_date') ? \Carbon\Carbon::parse($request->po_date)->format('Y-m-d') : null;
             $sale->walkin_name = $isWalkin ? $request->walkin_name : null;
             $sale->reference = $request->reference;
-            $sale->selected_terms = $request->has('selected_terms') ? $request->input('selected_terms') : null;
+            if ($request->boolean('terms_submitted') || $request->has('selected_terms')) {
+                $sale->selected_terms = array_values(array_map('intval', (array) $request->input('selected_terms', [])));
+            } elseif (!$sale->exists) {
+                $sale->selected_terms = null;
+            }
             $sale->total_amount_Words = $request->total_amount_Words; // Consider auto-generating this too?
             $sale->sale_status = $status;
             $sale->source = $request->input('source', $sale->source ?? 'invoice');
@@ -1612,6 +1626,8 @@ class SaleController extends Controller
             $sale->cash = $request->cash ?? 0;
             $sale->change = ($sale->cash - $sale->total_net);
             $sale->change_account_id = $request->input('change_account_id') ?: null;
+            $sale->paid_amount = round(min((float) $sale->total_net, max(0, (float) ($sale->cash ?? 0) + (float) ($sale->card ?? 0))), 2);
+            $sale->due_amount = max(0, round((float) $sale->total_net - $sale->paid_amount, 2));
 
             if ($isWalkin && $sale->change < -0.05) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
@@ -1754,6 +1770,20 @@ class SaleController extends Controller
                                     ]);
                                 }
 
+                                // Keep ProductBatch synced on POS exchange return
+                                $rProd = Product::find($rPid);
+                                if ($rProd) {
+                                    app(\App\Services\StockBalanceService::class)->syncBatchStockOnDelta(
+                                        $rProd,
+                                        (int) $retWhId,
+                                        (float) $stockQty,
+                                        null,
+                                        $origSaleItem->batch_id ?? null,
+                                        $origSaleItem->batch_no ?? null,
+                                        "Exchange Return #{$nextInvoice}"
+                                    );
+                                }
+
                                 // Movement
                                 $movements[] = [
                                     'product_id' => $rPid,
@@ -1777,7 +1807,10 @@ class SaleController extends Controller
                     }
 
                     // Recalculate true change based on net payable
-                    $sale->change = $sale->cash - max(0, $sale->total_net - $totalReturnAmountForNet);
+                    $netAfterExchange = max(0, (float) $sale->total_net - (float) $totalReturnAmountForNet);
+                    $sale->change = $sale->cash - $netAfterExchange;
+                    $sale->paid_amount = round(min($netAfterExchange, max(0, (float) ($sale->cash ?? 0) + (float) ($sale->card ?? 0))), 2);
+                    $sale->due_amount = max(0, round($netAfterExchange - $sale->paid_amount, 2));
                     $sale->reference = "Exchange for " . $origSale->invoice_no;
                     $sale->save();
 
@@ -2167,10 +2200,6 @@ class SaleController extends Controller
                     $unitLabel = ($productMode === 'by_kg' || $productMode === 'by_gm') ? 'Kg' : 'Pcs';
                     throw new \Exception('Insufficient stock for '.$item->product_name.'. Available: '.$availFormatted.' '.$unitLabel);
                 }
-                // Reconcile physical stock with the variant ledger shown in the UI
-                if ($available > $stock->total_pieces) {
-                    $stock->total_pieces = $available;
-                }
                 $stock->total_pieces -= $qtyPieces;
                 // Update approx boxes for display
                 $ppb = $item->product->pieces_per_box ?? 1;
@@ -2257,151 +2286,12 @@ class SaleController extends Controller
      */
     private function calculateAvailableForItem($item, $stock)
     {
-        $product = $item->product;
-
-        // Parse product variants
-        $parsedVariants = [];
-        if (!empty($product->color)) {
-            $decoded = json_decode($product->color, true);
-            if (is_array($decoded) && count($decoded) > 0) {
-                $parsedVariants = $decoded;
-            }
-        }
-        if (count($parsedVariants) === 0) {
+        if (!$item->product) {
             return (float) $stock->total_pieces;
         }
 
-        // Find the matching product variant
-        $matched = null;
-        foreach ($parsedVariants as $v) {
-            if ($this->matchStockVariant($item, $v)) {
-                $matched = $v;
-                break;
-            }
-        }
-        if ($matched === null) {
-            return (float) $stock->total_pieces;
-        }
-
-        $vUnitName = $matched['unit'] ?? '';
-        $isCartonMode = (in_array($product->size_mode, ['by_cartons', 'by_bandal']) || strtolower($vUnitName) === 'carton');
-        $ppb = (float) ($product->pieces_per_box ?? 1);
-        if ($isCartonMode) {
-            $vConv = (float) ($matched['conv_factor'] ?? 0);
-            if ($vConv > 0) $ppb = $vConv;
-        }
-        if ($ppb <= 0) $ppb = 1;
-
-        // Initial stock in pieces (carton notation may be boxes.loose)
-        $vRawStock = (string) ($matched['stock'] ?? '0');
-        if ($isCartonMode && $ppb > 1) {
-            if (strpos($vRawStock, '.') !== false) {
-                $parts = explode('.', $vRawStock);
-                $initial = (((int) ($parts[0] ?? 0)) * $ppb) + ((int) ($parts[1] ?? 0));
-            } else {
-                $initial = (float) $vRawStock * $ppb;
-            }
-        } else {
-            $initial = (float) $vRawStock;
-        }
-
-        // Purchased
-        $purchased = 0;
-        $purchasesList = DB::table('purchase_items as pi')
-            ->join('purchases as pur', 'pur.id', '=', 'pi.purchase_id')
-            ->where('pi.product_id', $product->id)
-            ->whereIn('pur.status_purchase', ['approved', 'Returned', 'Partial'])
-            ->select('pi.qty', 'pi.unit', 'pi.pieces_per_box', 'pi.boxes_qty', 'pi.loose_qty', 'pi.color')
-            ->get();
-        foreach ($purchasesList as $pItem) {
-            if (!$this->matchStockVariant($pItem, $matched)) continue;
-            $pUnit = strtolower(trim($pItem->unit ?? ''));
-            $pPPB = (float) ($pItem->pieces_per_box > 0 ? $pItem->pieces_per_box : $ppb);
-            if ($pPPB <= 0) $pPPB = 1;
-            if (in_array($pUnit, ['carton', 'ctn', 'box', 'bandal', 'bundal', 'bndl'])) {
-                if (isset($pItem->boxes_qty) && ($pItem->boxes_qty > 0 || $pItem->loose_qty > 0)) {
-                    $pPieces = (((int) $pItem->boxes_qty) * $pPPB) + ((int) $pItem->loose_qty);
-                } else {
-                    [$b, $l] = \App\Http\Controllers\PurchaseController::parseCartonQty($pItem->qty);
-                    $pPieces = ($b * $pPPB) + $l;
-                }
-            } elseif (in_array($pUnit, ['gm', 'g'])) {
-                $pPieces = ((float) $pItem->qty) / 1000.0;
-            } else {
-                $pPieces = (float) $pItem->qty;
-            }
-            $purchased += $pPieces;
-        }
-
-        // Sold (posted/returned sales only - bookings & quotations are excluded)
-        $sold = 0;
-        $salesList = DB::table('sale_items as si')
-            ->join('sales as s', 's.id', '=', 'si.sale_id')
-            ->where('si.product_id', $product->id)
-            ->whereIn('s.sale_status', ['posted', 'returned'])
-            ->where('s.id', '!=', $item->sale_id) // Exclude current sale to avoid double deduction
-            ->select('si.total_pieces', 'si.color')
-            ->get();
-        foreach ($salesList as $sItem) {
-            if ($this->matchStockVariant($sItem, $matched)) {
-                $sold += (float) $sItem->total_pieces;
-            }
-        }
-
-        // Returned
-        $returnedQty = 0;
-        $returnsList = DB::table('sale_return_items as sri')
-            ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
-            ->where('sri.product_id', $product->id)
-            ->select('sri.qty', 'sri.color', 'sr.sale_id')
-            ->get();
-        foreach ($returnsList as $rItem) {
-            if ($this->matchStockVariant($rItem, $matched)) {
-                $returnedQty += (float) $rItem->qty;
-            }
-        }
-
-        // Purchase returned
-        $pReturned = 0;
-        $pReturnsList = DB::table('purchase_return_items')
-            ->where('product_id', $product->id)
-            ->select('qty', 'color')
-            ->get();
-        foreach ($pReturnsList as $prItem) {
-            if ($this->matchStockVariant($prItem, $matched)) {
-                $pReturned += (float) $prItem->qty;
-            }
-        }
-
-        // Adjustments (excluding INIT)
-        $adjustments = 0;
-        $adjList = DB::table('stock_movements')
-            ->where('product_id', $product->id)
-            ->where('type', 'adjustment')
-            ->where(function ($q) {
-                $q->whereNull('ref_type')->orWhereNotIn('ref_type', ['INIT', 'OPENING_STOCK']);
-            })
-            ->select('qty', 'note')
-            ->get();
-        foreach ($adjList as $adjItem) {
-            $note = strtolower($adjItem->note ?? '');
-            if (empty($note) || $note === 'initial stock' || str_contains($note, 'opening stock')) continue;
-            $vSize  = strtolower(trim($matched['size'] ?? '-'));
-            $vColor = strtolower(trim($matched['color'] ?? '-'));
-            $sizeMatch = true;
-            if ($vSize !== '-' && !empty($vSize)) {
-                $sizeMatch = preg_match('/\b' . preg_quote($vSize, '/') . '\b/i', $note) === 1;
-            }
-            $colorMatch = true;
-            if ($vColor !== '-' && !empty($vColor)) {
-                $colorMatch = preg_match('/\b' . preg_quote($vColor, '/') . '\b/i', $note) === 1;
-            }
-            if ($sizeMatch && $colorMatch) {
-                $adjustments += (float) $adjItem->qty;
-            }
-        }
-
-        return max(0, $initial + $purchased - $sold + $returnedQty - $pReturned + $adjustments);
+        return app(\App\Services\StockBalanceService::class)
+            ->getAvailableForSaleItem($item->product, $stock->warehouse_id, $item->color);
     }
 
     /**

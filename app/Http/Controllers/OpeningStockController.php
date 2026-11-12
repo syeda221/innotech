@@ -489,7 +489,7 @@ class OpeningStockController extends Controller
                 'batch_no'     => $batchNo ?? ('BATCH-' . strtoupper(uniqid())),
                 'mfg_date'     => !empty($data['mfg_date']) ? $data['mfg_date'] : null,
                 'expiry_date'  => !empty($data['expiry_date']) ? $data['expiry_date'] : null,
-                'qty'          => $inputQty,
+                'qty'          => $addedPieces,
                 'cost_price'   => $costPrice,
                 'remarks'      => $remarks ?: 'Opening Stock Batch',
             ]);

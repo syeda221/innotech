@@ -1854,13 +1854,16 @@
                     $showInvoiceTerms = \App\Models\Setting::get('show_invoice_terms', '1') == '1';
                     $saleTermsList = null;
                     if ($showInvoiceTerms) {
-                        if (!empty($sale->selected_terms)) {
-                            $selectedTermIds = is_array($sale->selected_terms) ? $sale->selected_terms : json_decode($sale->selected_terms, true);
+                        if (!is_null($sale->selected_terms)) {
+                            $selectedTermIds = is_array($sale->selected_terms)
+                                ? $sale->selected_terms
+                                : (json_decode($sale->selected_terms, true) ?? []);
                             if (!empty($selectedTermIds)) {
                                 $saleTermsList = \App\Models\TermsAndCondition::whereIn('id', $selectedTermIds)->active()->ordered()->get();
+                            } else {
+                                $saleTermsList = collect();
                             }
-                        }
-                        if (is_null($saleTermsList)) {
+                        } else {
                             $activeTerms = \App\Models\TermsAndCondition::active()->ordered()->get();
                             if ($activeTerms->count() > 0) {
                                 $saleTermsList = $activeTerms;

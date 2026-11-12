@@ -2331,39 +2331,74 @@ class PurchaseController extends Controller
                 }
 
                 // Update Stock (DECREMENT)
-                $stock = WarehouseStock::where('warehouse_id', $validated['warehouse_id'])
+                $stockWhId = (int) $validated['warehouse_id'];
+                $stock = WarehouseStock::where('warehouse_id', $stockWhId)
                     ->where('product_id', $productId)
                     ->lockForUpdate()
                     ->first();
 
+                if (!$stock) {
+                    $fallbackWhId = $origItem->warehouse_id ?? ($purchase->warehouse_id ?? null);
+                    if ($fallbackWhId && (int) $fallbackWhId !== $stockWhId) {
+                        $fallbackStock = WarehouseStock::where('warehouse_id', (int) $fallbackWhId)
+                            ->where('product_id', $productId)
+                            ->lockForUpdate()
+                            ->first();
+                        if ($fallbackStock) {
+                            $stock = $fallbackStock;
+                            $stockWhId = (int) $fallbackWhId;
+                        }
+                    }
+                }
+
+                $product = Product::find($productId); // Ensure fresher product data
+                $ppbVal = ($product && $product->pieces_per_box > 0) ? $product->pieces_per_box : 1;
+
                 if ($stock) {
-                    $product = Product::find($productId); // Ensure fresher product data
-                    $ppbVal = $product->pieces_per_box > 0 ? $product->pieces_per_box : 1;
-                    
                     // Use total_pieces as primary source of truth to avoid losing loose pieces, fallback only if zero
                     $currentTotalPieces = $stock->total_pieces;
                     if ($currentTotalPieces == 0 && $stock->quantity > 0) {
                         $currentTotalPieces = $stock->quantity * $ppbVal;
                     }
-                    
+
                     // Subtract Return Qty (Pieces)
                     $newTotalPieces = max(0, $currentTotalPieces - $stockQty);
-                    
+
                     $stock->total_pieces = $newTotalPieces;
                     $stock->quantity = $newTotalPieces / $ppbVal; // Convert back to Boxes
                     $stock->save();
                 } else {
-                     // Should technically not happen for return, but handle gracefully
-                     $product = Product::find($productId);
-                     $ppbVal = $product->pieces_per_box > 0 ? $product->pieces_per_box : 1;
-                     
-                     WarehouseStock::create([
-                        'warehouse_id' => $validated['warehouse_id'],
+                    // Handle gracefully if stock record does not exist
+                    WarehouseStock::create([
+                        'warehouse_id' => $stockWhId,
                         'product_id' => $productId,
-                        'total_pieces' => -$stockQty, // Negative stock?
-                        'quantity' => -$stockQty / $ppbVal,
-                        'price' => 0
-                     ]);
+                        'total_pieces' => 0,
+                        'quantity' => 0,
+                        'price' => 0,
+                    ]);
+                }
+
+                // Keep batches and serials synced on Purchase Return
+                if ($product) {
+                    app(\App\Services\StockBalanceService::class)->syncBatchStockOnDelta(
+                        $product,
+                        $stockWhId,
+                        -1 * (float) $stockQty,
+                        null,
+                        $origItem->batch_id ?? null,
+                        $origItem->batch_no ?? null,
+                        "Purchase Return #{$nextInvoice}"
+                    );
+
+                    if ($origItem && !empty($origItem->serials)) {
+                        $serialsArr = is_string($origItem->serials) ? json_decode($origItem->serials, true) : (array) $origItem->serials;
+                        if (is_array($serialsArr) && count($serialsArr) > 0) {
+                            $toReturn = array_slice($serialsArr, 0, (int) $stockQty);
+                            \App\Models\ProductSerial::where('product_id', $productId)
+                                ->whereIn('serial_number', $toReturn)
+                                ->update(['status' => 'returned']);
+                        }
+                    }
                 }
 
                 // Prepare Stock Movement
@@ -2373,7 +2408,7 @@ class PurchaseController extends Controller
                     'qty' => $stockQty,
                     'ref_type' => 'PURCHASE_RETURN',
                     'ref_id' => $return->id,
-                    'note' => "Purchase Return",
+                    'note' => "Purchase Return #{$nextInvoice} | Warehouse #{$stockWhId}",
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];

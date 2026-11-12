@@ -179,7 +179,8 @@
                 data: function(params) {
                     return {
                         term: params.term || '',
-                        page: params.page || 1
+                        page: params.page || 1,
+                        warehouse_id: $el.closest('tr').find('.warehouse').val() || $('#headerWarehouseSelect').val() || 'all'
                     };
                 },
                 processResults: function(data, params) {
@@ -191,7 +192,7 @@
                         }
                     };
                 },
-                cache: true
+                cache: false
             },
             minimumInputLength: 0,
             language: {
@@ -508,7 +509,8 @@
         var targetWhId = preSelectId || $whInput.val() || $('#headerWarehouseSelect').val() || "{{ auth()->user()->warehouse_id ?? 1 }}";
 
         $.get('{{ route('warehouses.get') }}', {
-                product_id: productId
+                product_id: productId,
+                variant_data: $row.find('.variant-data-hidden').val() || ''
             })
             .done(function(warehouses) {
                 var validWarehouses = Array.isArray(warehouses) ? warehouses : [];
@@ -1583,19 +1585,7 @@
         if (typeof refreshPostedState === 'function') refreshPostedState();
     });
 
-        // Warehouse change -> stock (respect variant stock)
-        $('#salesTableBody').on('change', '.warehouse', function() {
-            const $row = $(this).closest('tr');
-            const variantStockVal = $row.find('.variant-stock-value').val();
-            
-            // If variant stock exists, use that instead of warehouse total
-            if (variantStockVal !== '' && variantStockVal !== undefined) {
-                $row.find('.stock').val(variantStockVal);
-            } else {
-                const stockPieces = $(this).find(':selected').data('ppb') || 0;
-                $row.find('.stock').val(stockPieces);
-            }
-        });
+        // Warehouse change -> handled asynchronously via loadWarehousesForProduct()
 
         // Inputs -> Calc
         // --- Helper for Box Conversion ---

@@ -43,18 +43,28 @@ class StockEntryService
             }
 
             // 3. Update Stock
+            $ppb = ($product->pieces_per_box > 0) ? (float) $product->pieces_per_box : 1.0;
             $previousPieces = $stock->total_pieces ?? 0;
             $newPieces = $previousPieces + $totalPieces;
 
             $previousBox = $stock->quantity ?? 0;
-            $newBox = $previousBox + $totalBox;
+            $newBox = $totalBox > 0 ? ($previousBox + $totalBox) : ($newPieces / $ppb);
 
             $stock->total_pieces = $newPieces;
             $stock->quantity = $newBox;
 
             $stock->save();
 
-      
+            app(StockBalanceService::class)->syncBatchStockOnDelta(
+                $product,
+                $warehouseId,
+                (float) $totalPieces,
+                null,
+                null,
+                null,
+                $remarks ?: 'Stock Entry'
+            );
+
             return $stock;
         });
     }

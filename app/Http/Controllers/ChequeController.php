@@ -350,8 +350,10 @@ class ChequeController extends Controller
                 }
             }
 
+            $cheque->reverseLinkedSalePayment();
+
             DB::commit();
-            return redirect()->route('cheques.index')->with('success', "Cheque #{$cheque->cheque_no} marked as bounced. Customer balance restored.");
+            return redirect()->route('cheques.index')->with('success', "Cheque #{$cheque->cheque_no} marked as bounced. Customer balance & invoice due restored.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Failed to mark cheque as bounced: ' . $e->getMessage()]);
