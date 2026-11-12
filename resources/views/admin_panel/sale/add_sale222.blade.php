@@ -1557,7 +1557,7 @@
                     {{-- Date --}}
                     <div class="d-flex align-items-center gap-2">
                         <label class="field-label mb-0 fw-bold text-secondary" for="displayDateInput">Date:</label>
-                        <input type="text" name="sale_date" class="form-control datepicker-custom text-center fw-bold" id="displayDateInput" value="{{ date('d/m/Y') }}" style="width: 130px; height: 38px;">
+                        <input type="text" name="sale_date" class="form-control datepicker-custom text-center fw-bold" id="displayDateInput" value="{{ date('Y-m-d') }}" style="width: 130px; height: 38px;">
                     </div>
 
                     {{-- Screen Configuration Button --}}
@@ -2026,9 +2026,12 @@
                             </div>
                                                         @php
                                 $allTerms = isset($termsAndConditions) ? $termsAndConditions : \App\Models\TermsAndCondition::active()->ordered()->get();
-                                $savedTerms = isset($sale) && !empty($sale->selected_terms) ? (is_array($sale->selected_terms) ? $sale->selected_terms : json_decode($sale->selected_terms, true)) : null;
+                                $savedTerms = (isset($sale) && !is_null($sale->selected_terms))
+                                    ? (is_array($sale->selected_terms) ? $sale->selected_terms : (json_decode($sale->selected_terms, true) ?? []))
+                                    : null;
                             @endphp
                             @if($allTerms->count() > 0)
+                                <input type="hidden" name="terms_submitted" value="1">
                                 <div class="mt-3 pt-2 border-top">
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <label class="field-label mb-0 fw-bold text-dark" style="font-size: 12px;">

@@ -422,7 +422,7 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold mb-1 text-muted small">Date</label>
-                            <input type="text" name="purchase_date" class="form-control datepicker-custom" value="{{ date('Y-m-d') }}">
+                            <input type="text" name="purchase_date" class="form-control datepicker-custom" value="{{ isset($purchase) && $purchase->purchase_date ? \Carbon\Carbon::parse($purchase->purchase_date)->format('Y-m-d') : date('Y-m-d') }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold mb-1 text-muted small">M.Bill / Remarks</label>

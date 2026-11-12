@@ -672,7 +672,7 @@
                     {{-- Date --}}
                     <div class="d-flex align-items-center gap-2">
                         <label class="field-label mb-0 fw-bold text-secondary">Date:</label>
-                        <input type="text" name="purchase_date" class="form-control datepicker-custom text-center fw-bold" value="{{ date('d/m/Y') }}" style="width: 130px; height: 38px;">
+                        <input type="text" name="purchase_date" class="form-control datepicker-custom text-center fw-bold" value="{{ date('Y-m-d') }}" style="width: 130px; height: 38px;">
                     </div>
                 </div>
             </div>

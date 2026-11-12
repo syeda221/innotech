@@ -1570,7 +1570,29 @@
                 dateFormat: "Y-m-d", // The value submitted to the server
                 altInput: true,      // Show a secondary visually formatted input
                 altFormat: "d/m/Y",  // Day/Month/Year
-                allowInput: true     // Allow typing
+                allowInput: true,    // Allow typing
+                parseDate: function(datestr, format) {
+                    if (!datestr) return null;
+                    if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(datestr)) {
+                        const parts = datestr.split(/[\/\-]/);
+                        const d = parseInt(parts[0], 10);
+                        const m = parseInt(parts[1], 10) - 1;
+                        const y = parseInt(parts[2], 10);
+                        return new Date(y, m, d);
+                    }
+                    if (/^\d{4}-\d{2}-\d{2}/.test(datestr)) {
+                        const parts = datestr.split('-');
+                        const y = parseInt(parts[0], 10);
+                        const m = parseInt(parts[1], 10) - 1;
+                        const d = parseInt(parts[2], 10);
+                        return new Date(y, m, d);
+                    }
+                    try {
+                        return flatpickr.parseDate(datestr, format);
+                    } catch (e) {
+                        return null;
+                    }
+                }
             });
         });
     </script>
