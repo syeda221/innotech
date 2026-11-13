@@ -22,7 +22,8 @@ class Vendor extends Model
         'opening_balance',
         'province',
         'city',
-        'area'
+        'area',
+        'zone'
     ];
 
       

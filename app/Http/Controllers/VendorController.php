@@ -50,6 +50,10 @@ class VendorController extends Controller
             $query->where('area', $request->area);
         }
 
+        if ($request->filled('zone') && $request->zone !== 'all') {
+            $query->where('zone', $request->zone);
+        }
+
         // Party Type Filter
         if ($request->filled('party_type') && $request->party_type !== 'all') {
             if ($request->party_type === 'both') {
@@ -72,7 +76,9 @@ class VendorController extends Controller
             'total_cities' => Vendor::whereNotNull('city')->where('city', '<>', '')->distinct('city')->count('city'),
         ];
 
-        return view('admin_panel.vendors.index', compact('vendors', 'stats'));
+        $zones = \App\Models\Zone::orderBy('zone')->get();
+
+        return view('admin_panel.vendors.index', compact('vendors', 'stats', 'zones'));
     }
 
     /**
@@ -103,6 +109,7 @@ class VendorController extends Controller
             'province' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:100',
             'area' => 'nullable|string|max:100',
+            'zone' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:500',
         ], [
             'name.required' => 'Vendor Name is required.',
@@ -137,6 +144,7 @@ class VendorController extends Controller
                     'province' => $request->province ?: null,
                     'city' => $request->city ?: null,
                     'area' => $request->area ?: null,
+                    'zone' => $request->zone ?: null,
                     'address' => $request->address ?: null,
                     'opening_balance' => $newOpening,
                 ];
@@ -232,6 +240,7 @@ class VendorController extends Controller
                     'province' => $vendor->province ?: $customer->province,
                     'city' => $vendor->city ?: $customer->city,
                     'area' => $vendor->area ?: $customer->area,
+                    'zone' => $vendor->zone ?: $customer->zone,
                     'party_type' => 'both',
                     'linked_vendor_id' => $vendor->id,
                     'status' => 'active',
@@ -249,6 +258,7 @@ class VendorController extends Controller
                     'province' => $vendor->province,
                     'city' => $vendor->city,
                     'area' => $vendor->area,
+                    'zone' => $vendor->zone,
                     'customer_type' => 'Main Customer',
                     'party_type' => 'both',
                     'linked_vendor_id' => $vendor->id,

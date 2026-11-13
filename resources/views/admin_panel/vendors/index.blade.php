@@ -447,6 +447,18 @@
                 </select>
             </div>
 
+            <!-- Zone -->
+            <div style="width: 145px; flex-shrink: 0;">
+                <select name="zone" id="vend_filter_zone" class="form-select form-select-sm" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
+                    <option value="">All Zones</option>
+                    @if(isset($zones))
+                        @foreach($zones as $z)
+                            <option value="{{ $z->zone }}" {{ request('zone') == $z->zone ? 'selected' : '' }}>{{ $z->zone }}</option>
+                        @endforeach
+                    @endif
+                </select>
+            </div>
+
             <!-- Area -->
             <div style="width: 145px; flex-shrink: 0;">
                 <select name="area" id="vend_filter_area" class="form-select form-select-sm" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
@@ -567,10 +579,10 @@
                                 <span class="badge bg-light text-muted border px-1.5 py-0" style="font-size: 10px;">Initial</span>
                             </td>
                             <td>
-                                @if($v->city || $v->province)
+                                @if($v->city || $v->province || $v->zone || $v->area)
                                     <div><i class="fas fa-map-marker-alt text-primary me-1"></i><span class="fw-semibold text-dark">{{ $v->city ?: ($v->province ?: '—') }}</span></div>
-                                    @if($v->area)
-                                        <small class="text-muted d-block">{{ $v->area }}</small>
+                                    @if($v->zone || $v->area)
+                                        <small class="text-muted d-block">{{ implode(' • ', array_filter([$v->zone, $v->area])) }}</small>
                                     @endif
                                 @else
                                     <span class="text-muted small">—</span>
@@ -763,7 +775,7 @@
                         <i class="fas fa-map-marker-alt text-primary"></i> 3. Location &amp; Physical Address
                     </div>
                     <div class="row g-3 mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="vprovince" class="form-label fw-bold text-dark small mb-1">Province</label>
                             <select class="form-select form-control px-3 py-2" name="province" id="vprovince" style="border-radius: 10px; border: 1.5px solid #cbd5e1; height: 42px;">
                                 <option value="">-- Select Province --</option>
@@ -773,7 +785,7 @@
                             </select>
                             <div class="invalid-feedback text-danger small mt-1" id="err_province"></div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="vcity" class="form-label fw-bold text-dark small mb-1">City</label>
                             <div class="input-group">
                                 <select class="form-select form-control px-3 py-2" name="city" id="vcity" style="border-radius: 8px 0 0 8px; border: 1.5px solid #cbd5e1; height: 42px;">
@@ -788,7 +800,24 @@
                             </div>
                             <div class="invalid-feedback text-danger small mt-1" id="err_city"></div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label for="vzone" class="form-label fw-bold text-dark small mb-1">Zone / Region</label>
+                            <div class="input-group">
+                                <select class="form-select form-control px-3 py-2" name="zone" id="vzone" style="border-radius: 8px 0 0 8px; border: 1.5px solid #cbd5e1; height: 42px;">
+                                    <option value="">-- Select Zone --</option>
+                                    @if(isset($zones))
+                                        @foreach($zones as $z)
+                                            <option value="{{ $z->zone }}">{{ $z->zone }}</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                <button type="button" class="btn btn-outline-primary btn-quick-add-zone px-2.5" title="Add New Zone" style="border-radius: 0 8px 8px 0; border: 1.5px solid #cbd5e1; border-left: none; height: 42px;">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback text-danger small mt-1" id="err_zone"></div>
+                        </div>
+                        <div class="col-md-3">
                             <label for="varea" class="form-label fw-bold text-dark small mb-1">Area / Town</label>
                             <div class="input-group">
                                 <select class="form-select form-control px-3 py-2" name="area" id="varea" style="border-radius: 8px 0 0 8px; border: 1.5px solid #cbd5e1; height: 42px;">
@@ -886,6 +915,7 @@
             $('#vparty_type').val('vendor');
             $('#vprovince').val('').trigger('change');
             $('#vcity').val('').trigger('change');
+            $('#vzone').val('').trigger('change');
             $('#varea').val('').trigger('change');
             $('#modalTitle').html('<i class="fas fa-truck text-primary me-2"></i>New Vendor');
             $('#vendorModal').modal('show');
@@ -913,6 +943,7 @@
                     $('#vstrn').val(v.strn_number || '');
                     $('#opening_balance').val(v.opening_balance !== null ? v.opening_balance : '0.00');
                     $('#vaddress').val(v.address || '');
+                    $('#vzone').val(v.zone || '').trigger('change');
 
                     // Cascade locations
                     $('#vprovince').val(v.province || '').trigger('change');

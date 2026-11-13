@@ -331,11 +331,11 @@ class LocationService
     }
 
     /**
-     * Get Vendors filtered by Province, City, Area
+     * Get Vendors filtered by Province, City, Area, Zone
      */
-    public function getFilteredVendors(?string $province = null, ?string $city = null, ?string $area = null)
+    public function getFilteredVendors(?string $province = null, ?string $city = null, ?string $area = null, ?string $zone = null)
     {
-        $query = Vendor::query()->select('id', 'name', 'province', 'city', 'area');
+        $query = Vendor::query()->select('id', 'name', 'province', 'city', 'area', 'zone');
 
         if (!empty($province) && $province !== 'all') {
             $query->where('province', $province);
@@ -345,6 +345,9 @@ class LocationService
         }
         if (!empty($area) && $area !== 'all') {
             $query->where('area', $area);
+        }
+        if (!empty($zone) && $zone !== 'all') {
+            $query->where('zone', $zone);
         }
 
         return $query->orderBy('name')->get();

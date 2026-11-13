@@ -133,6 +133,33 @@
     </div>
 </div>
 
+{{-- QUICK ADD ZONE MODAL --}}
+<div class="modal fade" id="quickAddZoneModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1065;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header text-white py-2.5 px-3" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
+                <h6 class="modal-title fw-bold mb-0 text-white" style="font-size: 0.95rem;">
+                    <i class="fas fa-map-marked-alt me-1.5"></i> Add New Zone / Region
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold text-dark mb-1">Zone / Region Name <span class="text-danger">*</span></label>
+                    <input type="text" id="quick_zone_name" class="form-control" placeholder="Enter Zone / Region (e.g. North Zone, Central...)" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                    <small class="text-muted" style="font-size: 0.72rem;">Zones help group customers and vendors by geographic territory.</small>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal" data-dismiss="modal" style="border-radius: 6px;">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary fw-bold px-3" id="btnSaveQuickZone" style="border-radius: 6px;">
+                    <i class="fas fa-check me-1"></i> Save Zone
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     window.locationHierarchy = @json($locationHierarchy);
 
@@ -691,6 +718,55 @@
                 error: function(xhr) {
                     btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i> Save Area');
                     const err = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Error saving area';
+                    alert(err);
+                }
+            });
+        });
+
+        // ==========================================
+        // QUICK ADD ZONE MODAL
+        // ==========================================
+        $(document).on('click', '.btn-quick-add-zone, #btnQuickAddZone', function(e) {
+            e.preventDefault();
+            $('#quick_zone_name').val('');
+            showQuickModal('quickAddZoneModal');
+            setTimeout(function() { $('#quick_zone_name').focus(); }, 300);
+        });
+
+        $('#btnSaveQuickZone').click(function() {
+            const zoneName = $('#quick_zone_name').val().trim();
+            if (!zoneName) {
+                alert('Please enter Zone name');
+                return;
+            }
+            const btn = $(this);
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving...');
+
+            $.ajax({
+                url: "{{ route('locations.zone.store') }}",
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    name: zoneName,
+                    zone: zoneName
+                },
+                success: function(res) {
+                    btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i> Save Zone');
+                    hideQuickModal('quickAddZoneModal');
+                    const newZone = res.item ? (res.item.name || res.item.zone) : zoneName;
+
+                    $('select[name="zone"], #vzone, #field_zone, #vend_filter_zone, .zoneInput, .zoneSelect').each(function() {
+                        const sel = $(this);
+                        if (!sel.find(`option[value="${newZone}"]`).length) {
+                            sel.append(new Option(newZone, newZone, true, true));
+                        }
+                        sel.val(newZone).trigger('change');
+                    });
+                    showQuickNotice('Zone "' + newZone + '" saved successfully!');
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i> Save Zone');
+                    const err = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to save zone.';
                     alert(err);
                 }
             });

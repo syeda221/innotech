@@ -331,6 +331,10 @@ class CustomerController extends Controller
                     'email' => $customer->email_address ?: $vendor->email,
                     'cnic' => $customer->cnic ?: $vendor->cnic,
                     'address' => $customer->address ?: $vendor->address,
+                    'province' => $customer->province ?: $vendor->province,
+                    'city' => $customer->city ?: $vendor->city,
+                    'area' => $customer->area ?: $vendor->area,
+                    'zone' => $customer->zone ?: $vendor->zone,
                     'party_type' => 'both',
                     'linked_customer_id' => $customer->id,
                 ]);
@@ -341,6 +345,10 @@ class CustomerController extends Controller
                     'email' => $customer->email_address,
                     'cnic' => $customer->cnic,
                     'address' => $customer->address,
+                    'province' => $customer->province,
+                    'city' => $customer->city,
+                    'area' => $customer->area,
+                    'zone' => $customer->zone,
                     'party_type' => 'both',
                     'linked_customer_id' => $customer->id,
                 ]);
