@@ -1724,7 +1724,7 @@ class ReportingController extends Controller
             $salesOfficerId = $request->sales_officer_id;
 
             // Use Eloquent to handle relations and new table structure
-            $query = \App\Models\Sale::with(['customer_relation.salesOfficer', 'salesOfficer', 'items.product', 'returns']);
+            $query = \App\Models\Sale::with(['customer_relation.salesOfficer', 'salesOfficer', 'items.product', 'returns.items.product']);
 
             if ($start && $end) {
                 $query->whereDate('created_at', '>=', $start)
@@ -1862,6 +1862,65 @@ class ReportingController extends Controller
                     }
                 }
 
+                $returnRecords = $sale->returns ? $sale->returns->map(function($ret) {
+                    // Robust return display handling both legacy strings and new relation items
+                    $retItems = $ret->items;
+                    if ($retItems && $retItems->count() > 0) {
+                        $pNames = $retItems->map(function($i) {
+                            if ($i->is_manual) {
+                                return $i->product_name . ' (Manual)';
+                            }
+                            if (!$i->product) return 'Unknown';
+                            
+                            $vStr = '';
+                            if (!empty($i->color)) {
+                                $itemVariant = [];
+                                $b64Decoded = base64_decode($i->color, true);
+                                if ($b64Decoded !== false) {
+                                    $json = json_decode($b64Decoded, true);
+                                    if (is_array($json)) {
+                                        $itemVariant = $json;
+                                    }
+                                }
+                                if (empty($itemVariant)) {
+                                    $json = json_decode($i->color, true);
+                                    if (is_array($json)) {
+                                        $itemVariant = $json;
+                                    }
+                                }
+
+                                if (!empty($itemVariant)) {
+                                    $sizeVal = $itemVariant['size'] ?? ($itemVariant['size_val'] ?? '');
+                                    $colorVal = $itemVariant['color'] ?? ($itemVariant['color_val'] ?? '');
+                                    $vParts = array_filter([$sizeVal, $colorVal], fn($v) => !empty($v) && trim($v) !== '-');
+                                    if (count($vParts) > 0) {
+                                        $vStr = ' (' . implode(' | ', $vParts) . ')';
+                                    }
+                                } else {
+                                    $vStr = (!empty($i->color) && trim($i->color) !== '-') ? ' (' . $i->color . ')' : '';
+                                }
+                            }
+                            return $i->product->item_name . $vStr;
+                        })->implode(', ');
+                        
+                        $pQtys = $retItems->pluck('qty')->implode(', ');
+                        $pTotal = (float)(($ret->net_amount !== null && (float)$ret->net_amount > 0) ? $ret->net_amount : $retItems->sum('line_total'));
+                    } else {
+                        $pNames = $ret->product ?? '-';
+                        $pQtys = $ret->qty ?? 0;
+                        $pTotal = (float)($ret->net_amount ?? 0);
+                    }
+
+                    return [
+                       'product' => $pNames,
+                       'qty' => $pQtys,
+                       'per_total' => $pTotal
+                    ];
+                }) : collect();
+
+                $saleReturnTotal = (float) $returnRecords->sum('per_total');
+                $effectiveNet = max(0, $netAmount - $saleReturnTotal);
+
                 return [
                     'id' => $sale->id,
                     'invoice_no' => $sale->invoice_no ?? ('INVSLE-' . $sale->id),
@@ -1877,6 +1936,8 @@ class ReportingController extends Controller
                     'total_pieces' => $total_pieces_arr,
                     'per_total' => $totals,
                     'total_net' => $netAmount,
+                    'total_returns' => $saleReturnTotal,
+                    'net_after_return' => $effectiveNet,
                     'created_at' => $sale->created_at ? $sale->created_at->format('Y-m-d h:i A') : '-',
                     'customer_name' => $sale->customer_relation ? $sale->customer_relation->customer_name : ($sale->walkin_name ?: 'Walk-in'),
                     'customer_province' => $sale->customer_relation->province ?? '',
@@ -1885,59 +1946,7 @@ class ReportingController extends Controller
                     'sales_officer_name' => $sale->salesOfficer->name ?? ($sale->customer_relation->salesOfficer->name ?? '-'),
                     'po_no' => $sale->po_no ?? '',
                     'po_date' => $sale->po_date ? \Carbon\Carbon::parse($sale->po_date)->format('d/m/Y') : '',
-                    'returns' => $sale->returns->map(function($ret) {
-                         // Robust return display handling both legacy strings and new relation items
-                         $retItems = $ret->items;
-                         if ($retItems && $retItems->count() > 0) {
-                             $pNames = $retItems->map(function($i) {
-                                 if ($i->is_manual) {
-                                     return $i->product_name . ' (Manual)';
-                                 }
-                                 if (!$i->product) return 'Unknown';
-                                 
-                                 $vStr = '';
-                                 if (!empty($i->color)) {
-                                     $itemVariant = [];
-                                     $b64Decoded = base64_decode($i->color, true);
-                                     if ($b64Decoded !== false) {
-                                         $json = json_decode($b64Decoded, true);
-                                         if (is_array($json)) {
-                                             $itemVariant = $json;
-                                         }
-                                     }
-                                     if (empty($itemVariant)) {
-                                         $json = json_decode($i->color, true);
-                                         if (is_array($json)) {
-                                             $itemVariant = $json;
-                                         }
-                                     }
-
-                                     if (!empty($itemVariant)) {
-                                         $sizeVal = $itemVariant['size'] ?? ($itemVariant['size_val'] ?? '');
-                                         $colorVal = $itemVariant['color'] ?? ($itemVariant['color_val'] ?? '');
-                                         $vParts = array_filter([$sizeVal, $colorVal], fn($v) => !empty($v) && trim($v) !== '-');
-                                         if (count($vParts) > 0) {
-                                             $vStr = ' (' . implode(' | ', $vParts) . ')';
-                                         }
-                                     }
-                                 }
-                                 return $i->product->item_name . $vStr;
-                             })->implode(', ');
-                             
-                             $pQtys = $retItems->pluck('qty')->implode(', ');
-                             $pTotal = $retItems->sum('line_total');
-                         } else {
-                             $pNames = $ret->product ?? '-';
-                             $pQtys = $ret->qty ?? 0;
-                             $pTotal = $ret->net_amount ?? 0;
-                         }
-
-                         return [
-                            'product' => $pNames,
-                            'qty' => $pQtys,
-                            'per_total' => $pTotal
-                         ];
-                    })
+                    'returns' => $returnRecords
                 ];
             });
 
@@ -1958,7 +1967,7 @@ class ReportingController extends Controller
 
             $totalExpenses = (float) $expenseQueryV1->sum('total_amount') + (float) $expenseQueryV2->sum('total_amount');
 
-            // Calculate Total COGS for fetched sales
+            // Calculate Total COGS for fetched sales (deducting returns)
             $totalCogs = 0;
             foreach ($sales as $sale) {
                 foreach ($sale->items as $item) {
@@ -1970,7 +1979,24 @@ class ReportingController extends Controller
                     }
                     $totalCogs += ((float) $item->total_pieces) * $purchPrice;
                 }
+
+                if ($sale->returns) {
+                    foreach ($sale->returns as $ret) {
+                        if ($ret->items) {
+                            foreach ($ret->items as $rItem) {
+                                $retPurchPrice = 0;
+                                if (isset($rItem->purchase_price) && (float)$rItem->purchase_price > 0) {
+                                    $retPurchPrice = (float) $rItem->purchase_price;
+                                } elseif ($rItem->product) {
+                                    $retPurchPrice = (float) ($rItem->product->purchase_price_per_piece ?? 0);
+                                }
+                                $totalCogs -= ((float) ($rItem->qty ?? 0)) * $retPurchPrice;
+                            }
+                        }
+                    }
+                }
             }
+            $totalCogs = max(0, $totalCogs);
 
             return response()->json([
                 'sales' => $transformed,
