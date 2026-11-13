@@ -800,6 +800,9 @@
                     <small class="text-muted" style="font-size: 11px;">
                         <i class="fas fa-keyboard text-primary me-1"></i> <strong>Excel Navigation:</strong> Press <kbd>Enter</kbd> to move from Qty &rarr; Price &rarr; Disc%. On the last cell, <kbd>Enter</kbd> automatically creates a new row!
                     </small>
+                    <button type="button" class="btn btn-sm btn-outline-primary fw-semibold" id="btnAddRow">
+                        <i class="fas fa-plus me-1"></i> Add Row
+                    </button>
                 </div>
             </div>
 
@@ -1466,6 +1469,21 @@
                 }
             });
 
+            // Add Blank Row Button
+            $('#btnAddRow').click(function() {
+                const $allRows = $('#purchaseTableBody tr');
+                if ($allRows.length > 0) {
+                    moveToNextPurchaseRow($allRows.last());
+                } else {
+                    const $newRow = addBlankRow();
+                    setTimeout(function() {
+                        const $p = $newRow.find('.product-select2');
+                        $p.focus();
+                        if ($p.data('select2')) $p.select2('open');
+                    }, 120);
+                }
+            });
+
             // Payment Row Add
             $('#btnAddPayment').click(function() {
                 const html = `
@@ -1761,6 +1779,11 @@
                     recalcRow($row);
                     recalcAll();
 
+                    // Immediately jump focus to Qty input after selection
+                    setTimeout(function() {
+                        $row.find('.main-qty-input').focus().select();
+                    }, 50);
+
                     // Check and open Batch / Serial tracking modal if applicable, or focus Qty directly
                     checkAndOpenProductTracking($row, pid);
                 });
@@ -1832,42 +1855,93 @@
                 recalcAll();
             });
 
-            // ==================== EXCEL KEYBOARD NAVIGATION (ENTER -> NEXT CELL / NEXT ROW) ====================
-            $(document).on('keydown', '.sales-table input', function(e) {
-                if (e.which === 13) { // ENTER KEY
-                    e.preventDefault();
-                    const $input = $(this);
-                    const $row = $input.closest('tr');
+            // Move to next row or create a new blank row
+            function moveToNextPurchaseRow($row) {
+                recalcRow($row);
+                recalcAll();
 
-                    if ($input.hasClass('main-qty-input')) {
+                const $allRows = $('#purchaseTableBody tr');
+                const isLastRow = $row.is($allRows.last());
+
+                const $tableWrap = $('#purchaseTableBody').closest('.pos-table-wrap, .table-responsive');
+                if ($tableWrap.length && $tableWrap.scrollLeft() > 20) {
+                    $tableWrap.animate({ scrollLeft: 0 }, 100);
+                }
+
+                if (isLastRow) {
+                    const $newRow = addBlankRow();
+                    setTimeout(function() {
+                        const $nextProduct = $newRow.find('.product-select2');
+                        $nextProduct.focus();
+                        if ($nextProduct.data('select2')) {
+                            $nextProduct.select2('open');
+                        }
+                    }, 120);
+                } else {
+                    const $nextRow = $row.next('tr');
+                    const $nextProduct = $nextRow.find('.product-select2');
+                    if ($nextProduct.val()) {
+                        $nextRow.find('.main-qty-input').focus().select();
+                    } else {
+                        setTimeout(function() {
+                            $nextProduct.focus();
+                            if ($nextProduct.data('select2')) {
+                                $nextProduct.select2('open');
+                            }
+                        }, 100);
+                    }
+                }
+            }
+
+            // ==================== EXCEL KEYBOARD NAVIGATION (ENTER -> NEXT CELL / NEXT ROW) ====================
+            $(document).on('keydown', '#purchaseTableBody input, #purchaseTableBody select, #purchaseTableBody .select2-selection', function(e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    const $target = $(this);
+
+                    // Allow normal Select2 selection inside open dropdown
+                    if ($('.select2-container--open').length > 0 && ($target.hasClass('select2-search__field') || $target.closest('.select2-dropdown').length > 0)) {
+                        return;
+                    }
+
+                    const $row = $target.closest('tr');
+                    if (!$row.length) return;
+
+                    e.preventDefault();
+                    recalcRow($row);
+                    recalcAll();
+
+                    if ($target.hasClass('main-qty-input')) {
                         // Qty -> Price
                         $row.find('.price').focus().select();
-                    } else if ($input.hasClass('price')) {
+                    } else if ($target.hasClass('price')) {
                         // Price -> Disc %
                         $row.find('.item-disc-percent').focus().select();
-                    } else if ($input.hasClass('item-disc-percent')) {
-                        if ($row.find('.item-gst-percent').length) {
-                            $row.find('.item-gst-percent').focus().select();
+                    } else if ($target.hasClass('item-disc-percent')) {
+                        const $gst = $row.find('.item-gst-percent:visible');
+                        if ($gst.length && !$gst.prop('readonly') && !$gst.prop('disabled')) {
+                            // Disc % -> GST %
+                            $gst.focus().select();
                         } else {
-                            const $nextRow = $row.next('tr');
-                            if ($nextRow.length) {
-                                $nextRow.find('.product-select2').select2('open');
-                            } else {
-                                const $newRow = addBlankRow();
-                                setTimeout(() => { $newRow.find('.product-select2').select2('open'); }, 50);
+                            // Disc % is last editable -> Next Row / Add Row
+                            moveToNextPurchaseRow($row);
+                        }
+                    } else if ($target.hasClass('item-gst-percent')) {
+                        // GST % -> Next Row / Add Row
+                        moveToNextPurchaseRow($row);
+                    } else if ($target.hasClass('row-warehouse-select')) {
+                        $row.find('.main-qty-input').focus().select();
+                    } else if ($target.hasClass('select2-selection') || $target.hasClass('product-select2')) {
+                        const hasProduct = $row.find('.product-select2').val();
+                        if (hasProduct) {
+                            $row.find('.main-qty-input').focus().select();
+                        } else {
+                            const $pSelect = $row.find('.product-select2');
+                            if ($pSelect.data('select2')) {
+                                $pSelect.select2('open');
                             }
                         }
-                    } else if ($input.hasClass('item-gst-percent')) {
-                        // GST % -> Next Row's Product or Create New Row
-                        const $nextRow = $row.next('tr');
-                        if ($nextRow.length) {
-                            $nextRow.find('.product-select2').select2('open');
-                        } else {
-                            const $newRow = addBlankRow();
-                            setTimeout(() => {
-                                $newRow.find('.product-select2').select2('open');
-                            }, 50);
-                        }
+                    } else {
+                        moveToNextPurchaseRow($row);
                     }
                 }
             });

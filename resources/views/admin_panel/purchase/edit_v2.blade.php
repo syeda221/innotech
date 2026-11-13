@@ -720,6 +720,84 @@
                 recalcAll();
             });
 
+            // Move to next row or create a new blank row
+            function moveToNextPurchaseRow($row) {
+                recalcRow($row);
+                recalcAll();
+
+                const $allRows = $('#purchaseTableBody tr');
+                const isLastRow = $row.is($allRows.last());
+
+                const $tableWrap = $('#purchaseTableBody').closest('.pos-table-wrap, .table-responsive');
+                if ($tableWrap.length && $tableWrap.scrollLeft() > 20) {
+                    $tableWrap.animate({ scrollLeft: 0 }, 100);
+                }
+
+                if (isLastRow) {
+                    addBlankRow();
+                    const $newRow = $('#purchaseTableBody tr:last-child');
+                    setTimeout(function() {
+                        const $nextProduct = $newRow.find('.product-select2');
+                        $nextProduct.focus();
+                        if ($nextProduct.data('select2')) {
+                            $nextProduct.select2('open');
+                        }
+                    }, 120);
+                } else {
+                    const $nextRow = $row.next('tr');
+                    const $nextProduct = $nextRow.find('.product-select2');
+                    if ($nextProduct.val()) {
+                        $nextRow.find('.main-qty-input').focus().select();
+                    } else {
+                        setTimeout(function() {
+                            $nextProduct.focus();
+                            if ($nextProduct.data('select2')) {
+                                $nextProduct.select2('open');
+                            }
+                        }, 100);
+                    }
+                }
+            }
+
+            // ==================== EXCEL KEYBOARD NAVIGATION (ENTER -> NEXT CELL / NEXT ROW) ====================
+            $(document).on('keydown', '#purchaseTableBody input, #purchaseTableBody select, #purchaseTableBody .select2-selection', function(e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    const $target = $(this);
+
+                    // Allow normal Select2 selection inside open dropdown
+                    if ($('.select2-container--open').length > 0 && ($target.hasClass('select2-search__field') || $target.closest('.select2-dropdown').length > 0)) {
+                        return;
+                    }
+
+                    const $row = $target.closest('tr');
+                    if (!$row.length) return;
+
+                    e.preventDefault();
+                    recalcRow($row);
+                    recalcAll();
+
+                    if ($target.hasClass('main-qty-input')) {
+                        $row.find('.price').focus().select();
+                    } else if ($target.hasClass('price')) {
+                        $row.find('.item-disc-percent').focus().select();
+                    } else if ($target.hasClass('item-disc-percent')) {
+                        moveToNextPurchaseRow($row);
+                    } else if ($target.hasClass('select2-selection') || $target.hasClass('product-select2')) {
+                        const hasProduct = $row.find('.product-select2').val();
+                        if (hasProduct) {
+                            $row.find('.main-qty-input').focus().select();
+                        } else {
+                            const $pSelect = $row.find('.product-select2');
+                            if ($pSelect.data('select2')) {
+                                $pSelect.select2('open');
+                            }
+                        }
+                    } else {
+                        moveToNextPurchaseRow($row);
+                    }
+                }
+            });
+
             // Summary Inputs
             $('#billDiscount, #billDiscountPct, #extraCost').on('input', function() {
                 recalcAll();
