@@ -2319,7 +2319,7 @@
 
             let html = '';
             if (!batches || batches.length === 0) {
-                html = '<tr><td colspan="5" class="text-danger fw-bold py-3"><i class="fas fa-exclamation-triangle me-1"></i> No active batches with available stock found for this product.</td></tr>';
+                html = '<tr><td colspan="5" class="text-muted py-3"><i class="fas fa-info-circle me-1"></i> No registered batches found for this product. You can enter a custom batch number below.</td></tr>';
             } else {
                 batches.forEach(b => {
                     const expDate = b.expiry_date ? b.expiry_date : 'N/A';
@@ -2336,14 +2336,19 @@
                     const whName = b.warehouse ? (b.warehouse.warehouse_name || b.warehouse.name) : (b.warehouse_name || "");
                     const whBadge = whName ? `<span class="badge bg-light text-dark border me-1"><i class="fas fa-warehouse text-primary me-1"></i>${whName}</span>` : "";
 
+                    const bQty = parseFloat(b.qty || 0);
+                    const qtyBadge = bQty > 0 
+                        ? `<span class="badge bg-success font-monospace fs-6">${bQty}</span>` 
+                        : `<span class="badge bg-secondary font-monospace fs-6">0</span>`;
+
                     html += `
                         <tr>
                             <td class="fw-bold text-primary font-monospace">${b.batch_no} ${whBadge}</td>
                             <td class="small">${mfgDate}</td>
                             <td>${expBadge}</td>
-                            <td><span class="badge bg-success font-monospace fs-6">${b.qty}</span></td>
+                            <td>${qtyBadge}</td>
                             <td>
-                                <button type="button" class="btn btn-sm btn-primary btn-choose-batch py-1 px-3 fw-bold"
+                                <button type="button" class="btn btn-sm ${bQty > 0 ? 'btn-primary' : 'btn-outline-primary'} btn-choose-batch py-1 px-3 fw-bold"
                                         data-batch-id="${b.id}" data-batch-no="${b.batch_no}" data-batch-qty="${b.qty}" data-warehouse-id="${b.warehouse_id || ""}">
                                     <i class="fas fa-check me-1"></i> Select Batch
                                 </button>
@@ -2355,6 +2360,29 @@
             $('#batchModalTableBody').html(html);
             $('#modalSelectBatch').modal('show');
         }
+
+        // Custom Batch Apply Button Click inside Modal
+        $(document).on('click', '#btnApplyCustomBatch', function() {
+            const batchNo = ($('#inputCustomBatchNo').val() || '').trim();
+            if (!batchNo) {
+                alert('Please enter a batch number.');
+                return;
+            }
+            const rowIndex = $('#activeBatchRowIndex').val();
+            const $row = $('#salesTableBody tr').eq(rowIndex);
+
+            if ($row.length) {
+                $row.find('.batch-id-hidden').val('');
+                $row.find('.batch-no-hidden').val(batchNo);
+
+                let badgeHtml = `<span class="badge bg-info text-dark" style="font-size:0.7rem;"><i class="fas fa-layer-group me-1"></i>Batch: ${batchNo}</span>`;
+                $row.find('.row-tracking-badges').html(badgeHtml);
+
+                $('#modalSelectBatch').modal('hide');
+                $('#inputCustomBatchNo').val('');
+                $row.find('.carton-qty').focus().select();
+            }
+        });
 
         // Select Batch Button Click inside Modal
         $(document).on('click', '.btn-choose-batch', function() {

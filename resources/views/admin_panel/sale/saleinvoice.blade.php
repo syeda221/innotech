@@ -1395,7 +1395,7 @@
                 <!-- SHIPPER / INVOICE INFORMATION CARD -->
                 <div class="header-meta-card">
                     <div class="card-head">
-                        <i class="fas fa-file-invoice"></i> SHIPPER / INVOICE DETAILS
+                        <i class="fas fa-file-invoice"></i> INVOICE DETAILS
                     </div>
                     <div class="card-body-meta">
                         <table class="meta-table">
@@ -1598,6 +1598,15 @@
                                     }
                                 }
                             @endphp
+
+                            @if(!empty($batchNo))
+                                <div class="item-sub-batch" style="font-size: 11px; font-weight: 700; color: #1e40af; margin-top: 2px;">
+                                    <i class="fas fa-layer-group me-1"></i>Batch: {{ $batchNo }}
+                                    @if(!empty($item['exp_date']))
+                                        <span class="text-muted ms-1" style="font-weight: normal; font-size: 10px;">(Exp: {{ \Carbon\Carbon::parse($item['exp_date'])->format('d-M-Y') }})</span>
+                                    @endif
+                                </div>
+                            @endif
 
                             @if(!empty($itemSerialsList) && count($itemSerialsList) > 0)
                                 <div class="item-sub-sn">
@@ -1916,14 +1925,11 @@
                     </div>
                 @endif
 
-                @if(\App\Models\Setting::get('show_invoice_signature', '1') == '1')
+                @if(\App\Models\Setting::get('show_invoice_signature', '1') == '1' && ($saleTermsList && $saleTermsList->count() > 0))
                 <!-- Authorized Signature -->
                 <div class="signature-section">
                     <div class="signature-line-box">
                         Authorized Signature
-                    </div>
-                    <div class="printed-timestamp">
-                        <i class="far fa-clock"></i> Printed on: {{ date('d-F-Y h:i A') }}
                     </div>
                 </div>
                 @endif
@@ -2004,7 +2010,7 @@
 
                         @if ($sumExclusiveGst > 0)
                             <tr>
-                                <td class="lbl">Exclusive GST Subtotal</td>
+                                <td class="lbl">Subtotal</td>
                                 <td class="val">{{ number_format($sumExclusiveGst, 2) }}</td>
                             </tr>
                         @endif

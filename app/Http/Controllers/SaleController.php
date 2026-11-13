@@ -2996,8 +2996,7 @@ class SaleController extends Controller
         $isBatchProduct = ($product && $product->tracking_type === 'batch') || \App\Models\ProductBatch::where('product_id', $productId)->exists();
 
         $query = \App\Models\ProductBatch::with('warehouse')
-            ->where('product_id', $productId)
-            ->where('qty', '>', 0);
+            ->where('product_id', $productId);
 
         if ($warehouseId && $strict) {
             $query->where('warehouse_id', $warehouseId);
@@ -3006,8 +3005,9 @@ class SaleController extends Controller
         if ($warehouseId) {
             $query->orderByRaw("CASE WHEN warehouse_id = ? THEN 0 ELSE 1 END", [$warehouseId]);
         }
-        $batches = $query->orderBy('warehouse_id', 'asc')
-            ->orderBy('expiry_date', 'asc')
+        $batches = $query->orderByRaw("CASE WHEN qty > 0 THEN 0 ELSE 1 END")
+            ->orderBy('qty', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json([

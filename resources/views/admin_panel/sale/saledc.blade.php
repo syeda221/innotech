@@ -378,6 +378,12 @@
                         <td class="text-start">
                             <div style="font-weight: 700; color: #000; font-size: 11px;">{{ $productTitle }}</div>
 
+                            @if(!empty($dcBatchNo))
+                                <div style="font-size: 11px; color: #1e40af; margin-top: 2px; font-weight: 700;">
+                                    <i class="fas fa-layer-group me-1"></i>Batch: {{ $dcBatchNo }}
+                                </div>
+                            @endif
+
                             @if(!empty($dcSerialsList) && count($dcSerialsList) > 0)
                                 <div style="font-size: 11px; color: #000; margin-top: 2px; font-weight: 800;">
                                     SN #: {{ implode(', ', $dcSerialsList) }}

@@ -3028,6 +3028,12 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <div class="mt-3 p-2 bg-light border rounded d-flex align-items-center gap-2">
+                        <label class="small fw-bold text-dark mb-0 text-nowrap"><i class="fas fa-pen text-primary me-1"></i>Custom Batch #:</label>
+                        <input type="text" id="inputCustomBatchNo" class="form-control form-control-sm font-monospace" placeholder="Enter Batch No if not listed above...">
+                        <button type="button" class="btn btn-sm btn-success fw-bold text-nowrap px-3" id="btnApplyCustomBatch"><i class="fas fa-check me-1"></i> Use This Batch</button>
+                    </div>
                 </div>
                 <div class="modal-footer bg-light border-top p-2 px-3">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
