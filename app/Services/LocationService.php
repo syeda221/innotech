@@ -137,16 +137,17 @@ class LocationService
     ];
 
     /**
-     * Get Complete Hierarchy (Dynamic from Database stored active provinces)
+     * Get Complete Hierarchy (Default Pakistan Hierarchy merged with Database stored active provinces, cities, areas)
      */
     public function getHierarchy(): array
     {
-        $hierarchy = [];
-
-        // 1. Initialize strictly from created active provinces in database
+        // 1. Initialize from default Pakistan hierarchy + created active provinces
+        $hierarchy = self::$defaultHierarchy;
         $createdProvinces = $this->getProvinces();
         foreach ($createdProvinces as $pName) {
-            $hierarchy[$pName] = [];
+            if (!isset($hierarchy[$pName])) {
+                $hierarchy[$pName] = [];
+            }
         }
 
         // Helper function for matching province name case-insensitively against created provinces
@@ -237,14 +238,21 @@ class LocationService
     }
 
     /**
-     * Get List of all Provinces (Only created in database, dynamic)
+     * Get List of all Provinces (Default Pakistan + Database active)
      */
     public function getProvinces(): array
     {
+        $defaultProvinces = array_keys(self::$defaultHierarchy);
         try {
-            return Province::active()->orderBy('name')->pluck('name')->map(fn($n) => trim($n))->unique()->values()->toArray();
+            $dbProvinces = Province::active()
+                ->orderBy('name')
+                ->pluck('name')
+                ->map(fn($n) => trim($n))
+                ->filter()
+                ->toArray();
+            return array_values(array_unique(array_merge($defaultProvinces, $dbProvinces)));
         } catch (\Throwable $e) {
-            return [];
+            return $defaultProvinces;
         }
     }
 

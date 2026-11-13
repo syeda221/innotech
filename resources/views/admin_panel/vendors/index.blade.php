@@ -777,12 +777,17 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-3">
                             <label for="vprovince" class="form-label fw-bold text-dark small mb-1">Province</label>
-                            <select class="form-select form-control px-3 py-2" name="province" id="vprovince" style="border-radius: 10px; border: 1.5px solid #cbd5e1; height: 42px;">
-                                <option value="">-- Select Province --</option>
-                                @foreach(app(\App\Services\LocationService::class)->getProvinces() as $p)
-                                    <option value="{{ $p }}">{{ $p }}</option>
-                                @endforeach
-                            </select>
+                            <div class="input-group">
+                                <select class="form-select form-control px-3 py-2" name="province" id="vprovince" style="border-radius: 8px 0 0 8px; border: 1.5px solid #cbd5e1; height: 42px;">
+                                    <option value="">-- Select Province --</option>
+                                    @foreach(app(\App\Services\LocationService::class)->getProvinces() as $p)
+                                        <option value="{{ $p }}">{{ $p }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="button" class="btn btn-outline-primary btn-quick-add-province px-2.5" title="Add New Province" style="border-radius: 0 8px 8px 0; border: 1.5px solid #cbd5e1; border-left: none; height: 42px;">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
                             <div class="invalid-feedback text-danger small mt-1" id="err_province"></div>
                         </div>
                         <div class="col-md-3">
