@@ -1877,49 +1877,204 @@ class PurchaseController extends Controller
 
     public function destroy($id)
     {
-        DB::transaction(function () use ($id) {
-            $purchase = Purchase::with('items')->findOrFail($id);
-            $oldNetAmount = $purchase->net_amount;
+        try {
+            DB::beginTransaction();
+
+            $purchase = Purchase::with(['items.product', 'vendor'])->findOrFail($id);
+
+            // 1. Check if there are any purchase returns linked to this purchase
+            $hasReturns = \App\Models\PurchaseReturn::where('purchase_id', $purchase->id)->exists();
+            if ($hasReturns) {
+                DB::rollBack();
+                $msg = "Cannot delete Purchase #{$purchase->invoice_no} because it has associated Purchase Returns. Please remove or handle returns first.";
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $msg], 422);
+                }
+                return redirect()->back()->with('error', $msg);
+            }
+
+            // 2. Check if any serial numbers from this purchase have already been sold or used
+            $soldSerials = [];
+            foreach ($purchase->items as $it) {
+                $serialsList = is_array($it->serials) ? $it->serials : (is_string($it->serials) ? json_decode($it->serials, true) : []);
+                if (!empty($serialsList) && is_array($serialsList)) {
+                    $sold = \App\Models\ProductSerial::where('product_id', $it->product_id)
+                        ->whereIn('serial_number', $serialsList)
+                        ->where('status', '!=', 'available')
+                        ->pluck('serial_number')
+                        ->toArray();
+                    if (!empty($sold)) {
+                        $soldSerials = array_merge($soldSerials, $sold);
+                    }
+                }
+            }
+
+            if (!empty($soldSerials)) {
+                DB::rollBack();
+                $msg = "Cannot delete Purchase #{$purchase->invoice_no} because serial/IMEI (" . implode(', ', array_unique($soldSerials)) . ") has already been sold or used!";
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $msg], 422);
+                }
+                return redirect()->back()->with('error', $msg);
+            }
 
             $branchId = (int) ($purchase->branch_id ?? 1);
             $warehouseId = (int) ($purchase->warehouse_id);
 
-            // linked to gatepass? then NO stock changes
+            // 3. Stock, Batch, Serial Reversal (Only if approved / confirmed / not draft, or if stock was moved)
             $isLinkedToGatepass = \App\Models\InwardGatepass::where('purchase_id', $purchase->id)->exists();
+            $shouldRevertStock = ($purchase->status_purchase !== 'draft') && !$isLinkedToGatepass;
 
-            if (! $isLinkedToGatepass) {
+            if ($shouldRevertStock) {
                 $movs = [];
                 $now = now();
 
-                foreach ($purchase->items as $it) {
-                    $pid = (int) $it->product_id;
-                    $qty = (float) $it->qty;
+                foreach ($purchase->items as $item) {
+                    $itemWarehouseId = (int) ($item->warehouse_id ?: $warehouseId);
 
+                    // Determine conversion factor and unit
+                    $convFactor = 1;
+                    $unit = strtolower(trim($item->unit ?? ''));
+                    if (!empty($item->color)) {
+                        $itemColor = $item->color;
+                        $b64Decoded = base64_decode($itemColor, true);
+                        $json = $b64Decoded !== false ? json_decode($b64Decoded, true) : null;
+                        if (!is_array($json)) {
+                            $json = json_decode($itemColor, true);
+                        }
+                        if (is_array($json)) {
+                            if (isset($json['conv_factor']) && (float)$json['conv_factor'] > 0) {
+                                $convFactor = (float) $json['conv_factor'];
+                            }
+                            if (empty($unit) && isset($json['unit'])) {
+                                $unit = strtolower(trim($json['unit']));
+                            }
+                        }
+                    }
+
+                    $ppb = (float) ($item->pieces_per_box > 0 ? $item->pieces_per_box : ($item->product->pieces_per_box ?? 1));
+                    if ($ppb <= 0) $ppb = 1;
+
+                    $isPiece = in_array($unit, ['pcs', 'pc', 'piece']);
+                    $isCarton = in_array($unit, ['carton', 'ctn', 'box', 'bandal', 'bundal', 'bndl']) || (!$isPiece && in_array($item->size_mode, ['by_cartons', 'by_bandal']));
+
+                    if ($unit === 'gm' || $unit === 'g' || $unit === 'gram' || $unit === 'grams') {
+                        $baseQty = ((float) $item->qty) / 1000.0;
+                    } elseif ($isPiece) {
+                        $baseQty = (float) $item->qty;
+                    } elseif ($isCarton) {
+                        if ($item->boxes_qty > 0 || $item->loose_qty > 0) {
+                            $boxes = (int) $item->boxes_qty;
+                            $loose = (int) $item->loose_qty;
+                        } else {
+                            [$boxes, $loose] = self::parseCartonQty($item->qty);
+                        }
+                        $baseQty = ($boxes * $ppb) + $loose;
+                    } else {
+                        $baseQty = ((float) $item->qty) * $convFactor;
+                    }
+
+                    // Stock deduction
+                    $this->upsertStocks($item->product_id, -$baseQty, $branchId, $itemWarehouseId);
+
+                    // Movement log (out)
                     $movs[] = [
-                        'product_id' => $pid,
+                        'product_id' => $item->product_id,
                         'type' => 'out',
-                        'qty' => $qty,
+                        'qty' => $baseQty,
                         'ref_type' => 'PURCHASE_DELETE',
                         'ref_id' => $purchase->id,
-                        'note' => 'Delete purchase (reverse)',
+                        'note' => "Delete Purchase #{$purchase->invoice_no} (Stock Reversal)",
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
 
-                    // stocks rollback
-                    $this->upsertStocks($pid, -$qty, $branchId, $warehouseId);
+                    // Batch Qty Reversal
+                    if (!empty($item->batch_id)) {
+                        $batch = \App\Models\ProductBatch::find($item->batch_id);
+                        if ($batch) {
+                            $batch->decrement('qty', min((float)$batch->qty, $baseQty));
+                        }
+                    } elseif (!empty($item->batch_no)) {
+                        $batch = \App\Models\ProductBatch::where('product_id', $item->product_id)
+                            ->where('warehouse_id', $itemWarehouseId)
+                            ->where('batch_no', $item->batch_no)
+                            ->first();
+                        if ($batch) {
+                            $batch->decrement('qty', min((float)$batch->qty, $baseQty));
+                        }
+                    }
+
+                    // Serials Reversal (delete serials introduced by this purchase that are available)
+                    $serialsList = is_array($item->serials) ? $item->serials : (is_string($item->serials) ? json_decode($item->serials, true) : []);
+                    if (!empty($serialsList) && is_array($serialsList)) {
+                        \App\Models\ProductSerial::where('product_id', $item->product_id)
+                            ->whereIn('serial_number', $serialsList)
+                            ->where('status', 'available')
+                            ->delete();
+                    }
                 }
 
-                if (! empty($movs)) {
+                if (!empty($movs)) {
                     DB::table('stock_movements')->insert($movs);
                 }
             }
 
+            // 4. Accounting & Voucher Reversal
+            $relatedVouchers = \App\Models\VoucherMaster::where(function($q) use ($purchase) {
+                $q->where('remarks', 'LIKE', "%Purchase Voucher #{$purchase->invoice_no}%")
+                  ->orWhere('remarks', 'LIKE', "%Auto-Payment for Purchase #{$purchase->invoice_no}%")
+                  ->orWhere('remarks', 'LIKE', "%#{$purchase->invoice_no}%")
+                  ->orWhere('remarks', 'LIKE', "%Purchase #{$purchase->id}%");
+            })->get();
+
+            foreach ($relatedVouchers as $v) {
+                $v->invoiceAllocations()->delete();
+                $v->journalEntries()->delete();
+                $v->details()->delete();
+                $v->delete();
+            }
+
+            \App\Models\VoucherInvoiceAllocation::where('purchase_id', $purchase->id)->delete();
+
+            \App\Models\JournalEntry::where('source_type', 'App\Models\Purchase')
+                ->where('source_id', $purchase->id)
+                ->delete();
+
+            // 5. Vendor Ledger Sync
+            $vendorId = $purchase->vendor_id;
+            if ($vendorId) {
+                $balanceService = app(\App\Services\BalanceService::class);
+                $currentVendorBalance = $balanceService->getVendorBalance($vendorId);
+                $vendorLedger = \App\Models\VendorLedger::where('vendor_id', $vendorId)->orderBy('id', 'desc')->first();
+                if ($vendorLedger) {
+                    $vendorLedger->closing_balance = $currentVendorBalance;
+                    $vendorLedger->save();
+                }
+            }
+
+            // 6. Delete Purchase Items and Purchase Record
             $purchase->items()->delete();
             $purchase->delete();
-        });
 
-        return redirect()->back()->with('success', 'Purchase deleted successfully.');
+            DB::commit();
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Purchase #{$purchase->invoice_no} deleted successfully and all stock, vouchers, and vendor entries reverted."
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Purchase #{$purchase->invoice_no} deleted successfully and all stock, vouchers, and vendor entries reverted.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Purchase Delete Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Failed to delete purchase: ' . $e->getMessage()], 500);
+            }
+            return redirect()->back()->with('error', 'Failed to delete purchase: ' . $e->getMessage());
+        }
     }
 
     public function Invoice($id)

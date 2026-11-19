@@ -791,7 +791,7 @@
 
                 Swal.fire({
                     title: "Are you sure?",
-                    text: "You won't be able to revert this!",
+                    text: "Deleting this purchase will revert added stock, batches, serials, accounting vouchers, and vendor balance!",
                     icon: "warning",
                     showCancelButton: true,
                     confirmButtonColor: "#dc3545",

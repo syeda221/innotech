@@ -146,20 +146,18 @@
                         @endcan
                     @endif
 
-                    @if ($purchase->status_purchase == 'draft')
-                        @can('purchases.delete')
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form action="{{ route('purchase.destroy', $purchase->id) }}" method="POST" class="d-inline delete-form">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 delete-btn text-danger">
-                                        <i class="fas fa-trash-alt fa-fw"></i> Delete
-                                    </button>
-                                </form>
-                            </li>
-                        @endcan
-                    @endif
+                    @can('purchases.delete')
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="{{ route('purchase.destroy', $purchase->id) }}" method="POST" class="d-inline delete-form">
+                                @csrf
+                                @method('DELETE')
+                                <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-2 delete-btn text-danger">
+                                    <i class="fas fa-trash-alt fa-fw"></i> Delete
+                                </button>
+                            </form>
+                        </li>
+                    @endcan
                 </ul>
             </div>
         </td>
