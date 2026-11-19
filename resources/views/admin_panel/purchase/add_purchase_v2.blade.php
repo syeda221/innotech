@@ -223,6 +223,54 @@
             border-color: var(--pos-border-strong);
         }
 
+        /* ---------- INVOICE GROUP ---------- */
+        .invoice-group {
+            flex-wrap: nowrap;
+        }
+        .invoice-group .btn-prefix {
+            height: 38px;
+            border: 1px solid var(--pos-border);
+            border-right: none;
+            background: #F8FAFC;
+            color: var(--pos-text);
+            font-weight: 700;
+            font-size: 13px;
+            border-radius: 6px 0 0 6px;
+            padding: 0 10px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .invoice-group .btn-prefix:hover {
+            background: #F1F5F9;
+        }
+        .invoice-group #inputPurchaseInvoiceNo {
+            border-radius: 0 !important;
+            border-left: none !important;
+            border-right: none !important;
+            font-family: Consolas, 'JetBrains Mono', monospace;
+            font-size: 13.5px;
+            font-weight: 700 !important;
+        }
+        .invoice-group .btn-refresh {
+            height: 38px;
+            border: 1px solid var(--pos-border);
+            border-left: none;
+            background: #ffffff;
+            color: var(--pos-muted);
+            border-radius: 0 6px 6px 0;
+            padding: 0 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .15s ease;
+        }
+        .invoice-group .btn-refresh:hover {
+            background: #F1F5F9;
+            color: var(--pos-blue);
+        }
+
         /* ---------- VENDOR BALANCE CARD (EXACT SALE CARD) ---------- */
         .cust-bal-card {
             background: #FFFFFF;
@@ -660,7 +708,50 @@
                     {{-- System Inv # --}}
                     <div class="d-flex align-items-center gap-2">
                         <label class="field-label mb-0 fw-bold text-secondary">Inv #:</label>
-                        <input type="text" class="form-control text-center fw-bold input-readonly" name="invoice_no" value="{{ $nextInvoice ?? 'NEW' }}" readonly style="width: 140px; height: 38px;">
+                        <div class="input-group invoice-group" style="width: 220px;">
+                            <button class="btn btn-prefix dropdown-toggle d-flex align-items-center gap-1"
+                                    type="button"
+                                    id="btnPurchaseInvoicePrefix"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                <span id="activePurchasePrefixLabel">{{ $activePrefix ?? 'GRN' }}</span>
+                            </button>
+                            <ul class="dropdown-menu shadow-lg p-1 border-0" id="dropdownPurchaseSeriesList" aria-labelledby="btnPurchaseInvoicePrefix" style="min-width: 170px; font-size: 13px; z-index: 1050;">
+                                @if(isset($allSeries) && count($allSeries) > 0)
+                                    @foreach($allSeries as $s)
+                                        @php $pfx = strtoupper($s['prefix'] ?? ''); @endphp
+                                        <li>
+                                            <a class="dropdown-item fw-bold {{ ($activePrefix ?? 'GRN') == $pfx ? 'text-primary active bg-light' : '' }}"
+                                               href="#"
+                                               data-prefix="{{ $pfx }}"
+                                               data-padding="{{ $s['padding'] ?? 4 }}">
+                                                @if(($activePrefix ?? 'GRN') == $pfx) <i class="fas fa-check text-primary me-1"></i> @endif
+                                                {{ $pfx }} <span class="text-muted small font-monospace">({{ $s['padding'] ?? 4 }}d)</span>
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                @else
+                                    <li><a class="dropdown-item fw-bold text-primary active bg-light" href="#" data-prefix="GRN"><i class="fas fa-check text-primary me-1"></i> GRN (3d)</a></li>
+                                    <li><a class="dropdown-item fw-bold" href="#" data-prefix="INV">INV (4d)</a></li>
+                                @endif
+                                <li><hr class="dropdown-divider my-1"></li>
+                                <li>
+                                    <a class="dropdown-item fw-bold text-primary d-flex align-items-center gap-1" href="#" id="btnOpenAddPurchaseSeriesModal">
+                                        <i class="fas fa-plus-circle me-1"></i> Add Series
+                                    </a>
+                                </li>
+                            </ul>
+
+                            <input type="text" class="form-control text-center fw-bold input-readonly" name="invoice_no" id="inputPurchaseInvoiceNo" value="{{ $nextInvoice }}" readonly style="height: 38px;">
+                            <input type="hidden" name="prefix" id="inputPurchasePrefix" value="{{ $activePrefix ?? 'GRN' }}">
+
+                            <button class="btn btn-refresh"
+                                    type="button"
+                                    id="btnRefreshPurchaseInvoiceNo"
+                                    title="Regenerate Invoice Number" style="height: 38px;">
+                                <i class="fas fa-sync-alt" id="iconRefreshPurchaseInvoice"></i>
+                            </button>
+                        </div>
                     </div>
 
                     {{-- Vendor Ref # --}}
@@ -1236,6 +1327,48 @@
         </div>
     </div>
 
+    <!-- Modal: Add / Manage Purchase Invoice Series -->
+    <div class="modal fade" id="modalAddPurchaseSeries" tabindex="-1" aria-labelledby="modalAddPurchaseSeriesLabel" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom bg-light px-3 py-2">
+                    <h6 class="modal-title fw-bold text-dark mb-0" id="modalAddPurchaseSeriesLabel">
+                        <i class="fas fa-barcode text-primary me-1"></i> Add Purchase Series
+                    </h6>
+                    <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" style="background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer;"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <form id="formAddPurchaseSeries">
+                    @csrf
+                    <div class="modal-body p-3">
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-secondary mb-1">Prefix (e.g. GRN, INV, PINV)</label>
+                            <input type="text" name="prefix" id="seriesPrefixInput" class="form-control form-control-sm text-uppercase fw-bold" placeholder="e.g. INV" required style="letter-spacing: 1px;">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-secondary mb-1">Starting Number (Counter)</label>
+                            <input type="number" name="next_number" id="seriesNextNumInput" class="form-control form-control-sm fw-bold text-primary" placeholder="e.g. 1" min="1" value="1" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold text-secondary mb-1">Padding Length (Zero Digits)</label>
+                            <select name="padding" id="seriesPaddingSelect" class="form-select form-select-sm fw-bold">
+                                <option value="3">3 Digits (e.g., 001)</option>
+                                <option value="4" selected>4 Digits (e.g., 0001)</option>
+                                <option value="5">5 Digits (e.g., 00001)</option>
+                                <option value="6">6 Digits (e.g., 000001)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-top p-2 px-3">
+                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-3" id="btnSavePurchaseSeries">
+                            <i class="fas fa-save me-1"></i> Save &amp; Select
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/vendors/select2/js/select2.min.js') }}"></script>
 
@@ -1248,6 +1381,118 @@
             $('.select2').select2({
                 width: '100%',
                 dropdownParent: $(document.body)
+            });
+
+            // ══════════════════════════════════════════════════════════════
+            // PURCHASE INVOICE SERIES & PREFIX GENERATOR LOGIC
+            // ══════════════════════════════════════════════════════════════
+            let currentPurchasePrefix = "{{ $activePrefix ?? 'GRN' }}";
+
+            window.fetchNextPurchaseInvoiceNo = function(prefix) {
+                if (!prefix) prefix = currentPurchasePrefix;
+                $('#iconRefreshPurchaseInvoice').addClass('fa-spin');
+                $.ajax({
+                    url: "{{ route('purchase_series.generate_no') }}",
+                    type: "GET",
+                    data: { prefix: prefix },
+                    success: function(res) {
+                        $('#iconRefreshPurchaseInvoice').removeClass('fa-spin');
+                        if (res.invoice_no) {
+                            $('#inputPurchaseInvoiceNo').val(res.invoice_no);
+                            $('#inputPurchasePrefix').val(prefix);
+                        }
+                    },
+                    error: function() {
+                        $('#iconRefreshPurchaseInvoice').removeClass('fa-spin');
+                    }
+                });
+            };
+
+            // Switch Prefix Click
+            $(document).on('click', '#dropdownPurchaseSeriesList a[data-prefix]', function(e) {
+                e.preventDefault();
+                let prefix = $(this).data('prefix');
+                if (!prefix) return;
+
+                currentPurchasePrefix = prefix;
+                $('#activePurchasePrefixLabel').text(prefix);
+                $('#inputPurchasePrefix').val(prefix);
+
+                // Update active state in dropdown
+                $('#dropdownPurchaseSeriesList a[data-prefix]').removeClass('text-primary active bg-light').find('i.fa-check').remove();
+                $(this).addClass('text-primary active bg-light').prepend('<i class="fas fa-check text-primary me-1"></i>');
+
+                window.fetchNextPurchaseInvoiceNo(prefix);
+            });
+
+            // Refresh Invoice No Click
+            $(document).on('click', '#btnRefreshPurchaseInvoiceNo', function() {
+                window.fetchNextPurchaseInvoiceNo(currentPurchasePrefix);
+            });
+
+            // Open Add Series Modal
+            $(document).on('click', '#btnOpenAddPurchaseSeriesModal', function(e) {
+                e.preventDefault();
+                $('#modalAddPurchaseSeries').modal('show');
+            });
+
+            // Submit Add Purchase Series Form
+            $('#formAddPurchaseSeries').on('submit', function(e) {
+                e.preventDefault();
+                let formData = $(this).serialize();
+                let $btn = $('#btnSavePurchaseSeries');
+
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Saving…');
+
+                $.ajax({
+                    url: "{{ route('purchase_series.store') }}",
+                    type: "POST",
+                    data: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(res) {
+                        $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Save &amp; Select');
+
+                        if (res.success) {
+                            $('#modalAddPurchaseSeries').modal('hide');
+                            $('#formAddPurchaseSeries')[0].reset();
+
+                            currentPurchasePrefix = res.prefix;
+                            $('#activePurchasePrefixLabel').text(res.prefix);
+                            $('#inputPurchasePrefix').val(res.prefix);
+                            $('#inputPurchaseInvoiceNo').val(res.invoice_no);
+
+                            // Update or insert item in dropdown list
+                            let existingItem = $(`#dropdownPurchaseSeriesList a[data-prefix="${res.prefix}"]`);
+                            if (existingItem.length > 0) {
+                                existingItem.data('padding', res.series.padding);
+                            } else {
+                                let newItemHtml = `<li>
+                                    <a class="dropdown-item fw-bold text-primary active bg-light" href="#" data-prefix="${res.prefix}" data-padding="${res.series.padding}">
+                                        <i class="fas fa-check text-primary me-1"></i> ${res.prefix} <span class="text-muted small font-monospace">(${res.series.padding}d)</span>
+                                    </a>
+                                </li>`;
+                                $('#dropdownPurchaseSeriesList li:has(hr)').before(newItemHtml);
+                            }
+
+                            $('#dropdownPurchaseSeriesList a[data-prefix]').removeClass('text-primary active bg-light').find('i.fa-check').remove();
+                            $(`#dropdownPurchaseSeriesList a[data-prefix="${res.prefix}"]`).addClass('text-primary active bg-light').prepend('<i class="fas fa-check text-primary me-1"></i>');
+
+                            Swal.fire({ icon: 'success', title: 'Saved!', text: res.message, timer: 1500, showConfirmButton: false });
+                        }
+                    },
+                    error: function(err) {
+                        $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Save &amp; Select');
+                        let msg = 'Error saving series.';
+                        if (err.responseJSON && err.responseJSON.errors) {
+                            msg = Object.values(err.responseJSON.errors).flat().join('\n');
+                        } else if (err.responseJSON && err.responseJSON.message) {
+                            msg = err.responseJSON.message;
+                        }
+                        Swal.fire('Error', msg, 'error');
+                    }
+                });
             });
 
             $(document).on('select2:open', function() {

@@ -182,16 +182,78 @@ class PurchaseController extends Controller
             $q->whereIn('name', ['Cash', 'Bank']);
         })->where('status', 1)->orderBy('title')->get();
 
-        $lastInvoice = Purchase::where('invoice_no', 'LIKE', 'GRN-%')->latest('id')->value('invoice_no');
-        $nextInvoice = $lastInvoice
-            ? 'GRN-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
-            : 'GRN-001';
+        $allSeries = \App\Models\Purchase::getAvailableSeries();
+        $defaultPrefix = 'GRN';
+        foreach ($allSeries as $s) {
+            if (!empty($s['is_default'])) {
+                $defaultPrefix = strtoupper(trim($s['prefix']));
+                break;
+            }
+        }
+        $activePrefix = request('prefix') ? strtoupper(trim(request('prefix'))) : $defaultPrefix;
+        $nextInvoice = \App\Models\Purchase::generateInvoiceNo($activePrefix);
 
         // Return new V2 view
         $purchaseGstEnabled = (bool) \App\Models\Setting::get('purchase_gst_enabled', '1');
         $defaultGstPercent = (float) \App\Models\Setting::get('purchase_gst_percent', '18.00');
 
-        return view('admin_panel.purchase.add_purchase_v2', compact('Vendor', 'Warehouse', 'Purchase', 'accounts', 'nextInvoice', 'allProducts', 'purchaseGstEnabled', 'defaultGstPercent'));
+        return view('admin_panel.purchase.add_purchase_v2', compact('Vendor', 'Warehouse', 'Purchase', 'accounts', 'nextInvoice', 'allProducts', 'purchaseGstEnabled', 'defaultGstPercent', 'allSeries', 'activePrefix'));
+    }
+
+    /**
+     * AJAX endpoint to generate next invoice number for selected purchase series prefix
+     */
+    public function generateInvoiceNoAjax(Request $request)
+    {
+        $prefix = $request->prefix ?: 'GRN';
+        $invoiceNo = \App\Models\Purchase::generateInvoiceNo($prefix);
+        return response()->json(['invoice_no' => $invoiceNo]);
+    }
+
+    /**
+     * Create or update purchase invoice series
+     */
+    public function storeInvoiceSeries(Request $request)
+    {
+        $request->validate([
+            'prefix' => 'required|string|max:20',
+            'next_number' => 'required|numeric|min:1',
+            'padding' => 'nullable|numeric|min:1|max:10',
+        ]);
+
+        $prefix = strtoupper(trim($request->prefix));
+        $padding = (int) ($request->padding ?: 4);
+        $nextNum = (int) $request->next_number;
+
+        $seriesList = \App\Models\Purchase::getAvailableSeries();
+        $found = false;
+        foreach ($seriesList as &$s) {
+            if (strtoupper($s['prefix'] ?? '') === $prefix) {
+                $s['padding'] = $padding;
+                $found = true;
+                break;
+            }
+        }
+        if (!$found) {
+            $seriesList[] = [
+                'prefix' => $prefix,
+                'padding' => $padding,
+                'name' => $prefix,
+                'is_default' => 0
+            ];
+        }
+        \App\Models\Setting::set('purchase_invoice_series_list', json_encode($seriesList), 'purchase', 'Purchase Invoice Series List', 'json');
+        \App\Models\Setting::set('purchase_series_next_' . strtolower($prefix), $nextNum, 'purchase', "Next Number for {$prefix} Purchase Series", 'integer');
+
+        $generatedNo = \App\Models\Purchase::generateInvoiceNo($prefix);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Purchase Series {$prefix} saved successfully!",
+            'series' => ['prefix' => $prefix, 'padding' => $padding, 'next_number' => $nextNum],
+            'prefix' => $prefix,
+            'invoice_no' => $generatedNo
+        ]);
     }
     public function quickCreate()
     {
@@ -267,10 +329,7 @@ class PurchaseController extends Controller
             }
 
             // 2. Create Header
-            $lastInvoice = Purchase::where('invoice_no', 'LIKE', 'GRN-%')->latest('id')->value('invoice_no');
-            $nextInvoice = $lastInvoice
-                ? 'GRN-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
-                : 'GRN-001';
+            $nextInvoice = Purchase::generateInvoiceNo('GRN');
 
             $purchase = Purchase::create([
                 'branch_id' => 1,
@@ -288,6 +347,8 @@ class PurchaseController extends Controller
                 'due_amount' => 0,
                 'status_purchase' => 'approved',
             ]);
+
+            Purchase::incrementCounterForInvoice($nextInvoice);
 
             $subtotal = 0;
             $baseName = $validated['base_product_name'];
@@ -748,11 +809,19 @@ class PurchaseController extends Controller
         // Wrap in transaction... to allow returning $purchase outside
         $purchase = DB::transaction(function () use ($validated, $request, $gatepass) {
 
-            // invoice number
-            $lastInvoice = Purchase::where('invoice_no', 'LIKE', 'GRN-%')->latest('id')->value('invoice_no');
-            $nextInvoice = $lastInvoice
-                ? 'GRN-'.str_pad(((int) preg_replace('/[^0-9]/', '', $lastInvoice)) + 1, 3, '0', STR_PAD_LEFT)
-                : 'GRN-001';
+            // Resolve invoice number according to chosen purchase series
+            $reqPrefix = $request->prefix ?: (preg_match('/^([A-Z0-9]+)-/i', trim($validated['invoice_no'] ?? ''), $pm) ? strtoupper($pm[1]) : 'GRN');
+            $invInput = trim($validated['invoice_no'] ?? '');
+
+            if (!empty($invInput)) {
+                if (Purchase::where('invoice_no', $invInput)->exists()) {
+                    $finalInvoiceNo = Purchase::generateInvoiceNo($reqPrefix);
+                } else {
+                    $finalInvoiceNo = $invInput;
+                }
+            } else {
+                $finalInvoiceNo = Purchase::generateInvoiceNo($reqPrefix);
+            }
 
             $user = auth()->user();
             $canSelectWarehouse = $user && (
@@ -781,7 +850,7 @@ class PurchaseController extends Controller
                 'warehouse_id' => $warehouseId,
                 'vendor_id' => $validated['vendor_id'] ?? null,
                 'purchase_date' => $validated['purchase_date'] ?? now(),
-                'invoice_no' => $validated['invoice_no'] ?? $nextInvoice,
+                'invoice_no' => $finalInvoiceNo,
                 'purchase_order_no' => $validated['purchase_order_no'] ?? null,
                 'note' => $validated['note'] ?? null,
                 'subtotal' => 0,
@@ -792,6 +861,9 @@ class PurchaseController extends Controller
                 'due_amount' => 0,
                 'status_purchase' => $status,
             ]);
+
+            // Increment Invoice Series counter for Purchase
+            Purchase::incrementCounterForInvoice($finalInvoiceNo);
 
             $subtotal = 0;
             $pids = $validated['product_id'] ?? [];

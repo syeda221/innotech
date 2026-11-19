@@ -349,6 +349,8 @@ Route::middleware('auth')->group(function () {
 
     route::get('/Purchase', [PurchaseController::class, 'index'])->middleware('permission:purchases.view')->name('Purchase.home');
     route::get('/add/Purchase', [PurchaseController::class, 'add_purchase'])->middleware('permission:purchases.create')->name('add_purchase');
+    Route::get('/purchase-series/generate-no', [PurchaseController::class, 'generateInvoiceNoAjax'])->name('purchase_series.generate_no');
+    Route::post('/purchase-series/store', [PurchaseController::class, 'storeInvoiceSeries'])->name('purchase_series.store');
     Route::get('/purchase/quick', [PurchaseController::class, 'quickCreate'])->middleware('permission:purchases.create')->name('purchase.quick_create');
     Route::post('/purchase/quick', [PurchaseController::class, 'quickStore'])->middleware('permission:purchases.create')->name('purchase.quick_store');
     
