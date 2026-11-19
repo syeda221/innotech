@@ -227,6 +227,9 @@
         .invoice-group {
             flex-wrap: nowrap;
         }
+        .invoice-group .dropdown {
+            position: relative;
+        }
         .invoice-group .btn-prefix {
             height: 38px;
             border: 1px solid var(--pos-border);
@@ -241,6 +244,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
+            cursor: pointer;
         }
         .invoice-group .btn-prefix:hover {
             background: #F1F5F9;
@@ -269,6 +273,16 @@
         .invoice-group .btn-refresh:hover {
             background: #F1F5F9;
             color: var(--pos-blue);
+        }
+        .invoice-group .dropdown-menu {
+            position: absolute !important;
+            top: 100% !important;
+            left: 0 !important;
+            z-index: 1055 !important;
+            margin-top: 2px !important;
+        }
+        .invoice-group .dropdown-menu.show {
+            display: block !important;
         }
 
         /* ---------- VENDOR BALANCE CARD (EXACT SALE CARD) ---------- */
@@ -709,38 +723,43 @@
                     <div class="d-flex align-items-center gap-2">
                         <label class="field-label mb-0 fw-bold text-secondary">Inv #:</label>
                         <div class="input-group invoice-group" style="width: 220px;">
-                            <button class="btn btn-prefix dropdown-toggle d-flex align-items-center gap-1"
-                                    type="button"
-                                    id="btnPurchaseInvoicePrefix"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false">
-                                <span id="activePurchasePrefixLabel">{{ $activePrefix ?? 'GRN' }}</span>
-                            </button>
-                            <ul class="dropdown-menu shadow-lg p-1 border-0" id="dropdownPurchaseSeriesList" aria-labelledby="btnPurchaseInvoicePrefix" style="min-width: 170px; font-size: 13px; z-index: 1050;">
-                                @if(isset($allSeries) && count($allSeries) > 0)
-                                    @foreach($allSeries as $s)
-                                        @php $pfx = strtoupper($s['prefix'] ?? ''); @endphp
-                                        <li>
-                                            <a class="dropdown-item fw-bold {{ ($activePrefix ?? 'GRN') == $pfx ? 'text-primary active bg-light' : '' }}"
-                                               href="#"
-                                               data-prefix="{{ $pfx }}"
-                                               data-padding="{{ $s['padding'] ?? 4 }}">
-                                                @if(($activePrefix ?? 'GRN') == $pfx) <i class="fas fa-check text-primary me-1"></i> @endif
-                                                {{ $pfx }} <span class="text-muted small font-monospace">({{ $s['padding'] ?? 4 }}d)</span>
-                                            </a>
-                                        </li>
-                                    @endforeach
-                                @else
-                                    <li><a class="dropdown-item fw-bold text-primary active bg-light" href="#" data-prefix="GRN"><i class="fas fa-check text-primary me-1"></i> GRN (3d)</a></li>
-                                    <li><a class="dropdown-item fw-bold" href="#" data-prefix="INV">INV (4d)</a></li>
-                                @endif
-                                <li><hr class="dropdown-divider my-1"></li>
-                                <li>
-                                    <a class="dropdown-item fw-bold text-primary d-flex align-items-center gap-1" href="#" id="btnOpenAddPurchaseSeriesModal">
-                                        <i class="fas fa-plus-circle me-1"></i> Add Series
-                                    </a>
-                                </li>
-                            </ul>
+                            <div class="dropdown">
+                                <button class="btn btn-prefix dropdown-toggle d-flex align-items-center gap-1"
+                                        type="button"
+                                        id="btnPurchaseInvoicePrefix"
+                                        data-toggle="dropdown"
+                                        data-bs-toggle="dropdown"
+                                        aria-haspopup="true"
+                                        aria-expanded="false">
+                                    <span id="activePurchasePrefixLabel">{{ $activePrefix ?? 'GRN' }}</span>
+                                    <i class="fas fa-chevron-down" style="font-size: 9px; margin-left: 2px; opacity: 0.7;"></i>
+                                </button>
+                                <ul class="dropdown-menu shadow-lg p-1 border-0" id="dropdownPurchaseSeriesList" aria-labelledby="btnPurchaseInvoicePrefix" style="min-width: 170px; font-size: 13px; z-index: 1055;">
+                                    @if(isset($allSeries) && count($allSeries) > 0)
+                                        @foreach($allSeries as $s)
+                                            @php $pfx = strtoupper($s['prefix'] ?? ''); @endphp
+                                            <li>
+                                                <a class="dropdown-item fw-bold {{ ($activePrefix ?? 'GRN') == $pfx ? 'text-primary active bg-light' : '' }}"
+                                                   href="javascript:void(0)"
+                                                   data-prefix="{{ $pfx }}"
+                                                   data-padding="{{ $s['padding'] ?? 4 }}">
+                                                    @if(($activePrefix ?? 'GRN') == $pfx) <i class="fas fa-check text-primary me-1"></i> @endif
+                                                    {{ $pfx }} <span class="text-muted small font-monospace">({{ $s['padding'] ?? 4 }}d)</span>
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    @else
+                                        <li><a class="dropdown-item fw-bold text-primary active bg-light" href="javascript:void(0)" data-prefix="GRN"><i class="fas fa-check text-primary me-1"></i> GRN (3d)</a></li>
+                                        <li><a class="dropdown-item fw-bold" href="javascript:void(0)" data-prefix="PUR">PUR (4d)</a></li>
+                                    @endif
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li>
+                                        <a class="dropdown-item fw-bold text-primary d-flex align-items-center gap-1" href="javascript:void(0)" id="btnOpenAddPurchaseSeriesModal">
+                                            <i class="fas fa-plus-circle me-1"></i> Add Series
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
 
                             <input type="text" class="form-control text-center fw-bold input-readonly" name="invoice_no" id="inputPurchaseInvoiceNo" value="{{ $nextInvoice }}" readonly style="height: 38px;">
                             <input type="hidden" name="prefix" id="inputPurchasePrefix" value="{{ $activePrefix ?? 'GRN' }}">
@@ -1341,8 +1360,8 @@
                     @csrf
                     <div class="modal-body p-3">
                         <div class="mb-2">
-                            <label class="form-label small fw-bold text-secondary mb-1">Prefix (e.g. GRN, INV, PINV)</label>
-                            <input type="text" name="prefix" id="seriesPrefixInput" class="form-control form-control-sm text-uppercase fw-bold" placeholder="e.g. INV" required style="letter-spacing: 1px;">
+                            <label class="form-label small fw-bold text-secondary mb-1">Prefix (e.g. GRN, PUR, PINV)</label>
+                            <input type="text" name="prefix" id="seriesPrefixInput" class="form-control form-control-sm text-uppercase fw-bold" placeholder="e.g. PUR" required style="letter-spacing: 1px;">
                         </div>
                         <div class="mb-2">
                             <label class="form-label small fw-bold text-secondary mb-1">Starting Number (Counter)</label>
@@ -1408,11 +1427,38 @@
                 });
             };
 
+            // Toggle series dropdown menu when clicking prefix button
+            $(document).on('click', '#btnPurchaseInvoicePrefix', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                let $menu = $('#dropdownPurchaseSeriesList');
+                let isShown = $menu.hasClass('show');
+                $('.dropdown-menu').not($menu).removeClass('show');
+                if (!isShown) {
+                    $menu.addClass('show');
+                    $(this).attr('aria-expanded', 'true');
+                } else {
+                    $menu.removeClass('show');
+                    $(this).attr('aria-expanded', 'false');
+                }
+            });
+
+            // Close series dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.invoice-group .dropdown').length) {
+                    $('#dropdownPurchaseSeriesList').removeClass('show');
+                    $('#btnPurchaseInvoicePrefix').attr('aria-expanded', 'false');
+                }
+            });
+
             // Switch Prefix Click
             $(document).on('click', '#dropdownPurchaseSeriesList a[data-prefix]', function(e) {
                 e.preventDefault();
                 let prefix = $(this).data('prefix');
                 if (!prefix) return;
+
+                $('#dropdownPurchaseSeriesList').removeClass('show');
+                $('#btnPurchaseInvoicePrefix').attr('aria-expanded', 'false');
 
                 currentPurchasePrefix = prefix;
                 $('#activePurchasePrefixLabel').text(prefix);
@@ -1433,6 +1479,8 @@
             // Open Add Series Modal
             $(document).on('click', '#btnOpenAddPurchaseSeriesModal', function(e) {
                 e.preventDefault();
+                $('#dropdownPurchaseSeriesList').removeClass('show');
+                $('#btnPurchaseInvoicePrefix').attr('aria-expanded', 'false');
                 $('#modalAddPurchaseSeries').modal('show');
             });
 

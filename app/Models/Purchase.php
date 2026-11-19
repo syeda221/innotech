@@ -44,8 +44,23 @@ class Purchase extends Model
         if (!is_array($customList) || empty($customList)) {
             $customList = [
                 ['prefix' => 'GRN', 'padding' => 3, 'name' => 'GRN', 'is_default' => 1],
-                ['prefix' => 'INV', 'padding' => 4, 'name' => 'INV', 'is_default' => 0],
+                ['prefix' => 'PUR', 'padding' => 4, 'name' => 'PUR', 'is_default' => 0],
             ];
+        } else {
+            // Replace any INV with PUR per user request (PUR denotes Purchase)
+            $hasPur = false;
+            foreach ($customList as &$item) {
+                if (strtoupper($item['prefix'] ?? '') === 'INV') {
+                    $item['prefix'] = 'PUR';
+                    $item['name'] = 'PUR';
+                }
+                if (strtoupper($item['prefix'] ?? '') === 'PUR') {
+                    $hasPur = true;
+                }
+            }
+            if (!$hasPur) {
+                $customList[] = ['prefix' => 'PUR', 'padding' => 4, 'name' => 'PUR', 'is_default' => 0];
+            }
         }
         return $customList;
     }
