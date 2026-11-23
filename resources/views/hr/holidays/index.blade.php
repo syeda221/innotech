@@ -88,7 +88,7 @@
                             @endfor
                         </select>
                         @can('hr.holidays.create')
-                            <button type="button" class="btn btn-create" id="createBtn">
+                            <button type="button" class="btn btn-create" id="createBtn" data-toggle="modal" data-target="#holidayModal">
                                 <i class="fa fa-plus"></i> Add Holiday
                             </button>
                         @endcan
@@ -199,7 +199,9 @@
                         <i class="fa fa-calendar-alt"></i>
                         <span>Add Holiday</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="holidayForm" action="{{ route('hr.holidays.store') }}" method="POST" data-ajax-validate="true">
                     @csrf
@@ -229,7 +231,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">
                             <i class="fa fa-times me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-save"
@@ -250,7 +252,7 @@
                 window.location.href = '{{ route('hr.holidays.index') }}?year=' + $(this).val();
             });
 
-            $('#createBtn').click(function() {
+            $(document).on('click', '#createBtn', function() {
                 $('#holidayForm')[0].reset();
                 $('#edit_id').val('');
                 $('#modalTitle').html('<i class="fa fa-calendar-alt"></i><span>Add Holiday</span>');

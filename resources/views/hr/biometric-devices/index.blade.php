@@ -13,12 +13,12 @@
                         <p class="page-subtitle">Manage fingerprint attendance devices</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-light border" data-bs-toggle="modal"
+                        <button type="button" class="btn btn-light border" data-toggle="modal" data-target="#deviceGuideModal" data-bs-toggle="modal"
                             data-bs-target="#deviceGuideModal">
                             <i class="fa fa-question-circle text-primary me-1"></i> Setup Guide
                         </button>
                         @can('hr.biometric.devices.create')
-                            <button type="button" class="btn btn-create" id="addDeviceBtn">
+                            <button type="button" class="btn btn-create" id="addDeviceBtn" data-toggle="modal" data-target="#deviceModal">
                                 <i class="fa fa-plus"></i> Add Device
                             </button>
                         @endcan
@@ -32,8 +32,8 @@
                             <div class="modal-header gradient text-white">
                                 <h5 class="modal-title font-weight-bold"><i class="fa fa-info-circle me-2"></i> Biometric
                                     Device Guide</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
+                                <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal"
+                                    aria-label="Close"><span aria-hidden="true">&times;</span></button>
                             </div>
                             <div class="modal-body p-4">
                                 <div class="row g-4">
@@ -191,7 +191,7 @@
                                     <i class="fa fa-fingerprint" style="font-size: 48px; color: #ccc;"></i>
                                     <p class="mt-3 text-muted">No biometric devices configured yet.</p>
                                     @can('hr.biometric.devices.create')
-                                        <button class="btn btn-primary mt-2" id="addDeviceBtnEmpty">
+                                        <button class="btn btn-primary mt-2" id="addDeviceBtnEmpty" data-toggle="modal" data-target="#deviceModal">
                                             <i class="fa fa-plus"></i> Add Your First Device
                                         </button>
                                     @endcan
@@ -213,7 +213,9 @@
                         <i class="fa fa-fingerprint"></i>
                         <span id="modalTitle">Add Device</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="deviceForm" data-ajax-validate="true">
                     @csrf
@@ -274,7 +276,7 @@
                     </div>
 
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-secondary btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fa fa-check"></i> Save Device
                         </button>
@@ -285,6 +287,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
 
     <script>
         $(document).ready(function() {
@@ -303,7 +306,7 @@
                     },
                     error: function(xhr) {
                         Swal.fire('Error!', xhr.responseJSON?.error ||
-                            'Failed to save settings', 'error');
+                             'Failed to save settings', 'error');
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(
@@ -313,7 +316,7 @@
             });
 
             // Open Add Modal
-            $('#addDeviceBtn, #addDeviceBtnEmpty').click(function() {
+            $(document).on('click', '#addDeviceBtn, #addDeviceBtnEmpty', function() {
                 $('#device_id').val('');
                 $('#_method').val('POST');
                 $('#deviceForm')[0].reset();

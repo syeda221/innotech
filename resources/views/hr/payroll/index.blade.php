@@ -658,17 +658,17 @@
                         @can('hr.payroll.create')
                             <div class="dropdown">
                                 <button class="btn btn-create dropdown-toggle" type="button" id="generateDropdown"
-                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                    data-toggle="dropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fa fa-plus-circle"></i> Generate Payroll
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="generateDropdown">
                                     <li>
-                                        <a class="dropdown-item py-2" href="javascript:void(0)" id="generateMonthlyBtn">
+                                        <a class="dropdown-item py-2" href="javascript:void(0)" id="generateMonthlyBtn" data-toggle="modal" data-target="#generateMonthlyModal">
                                             <i class="fa fa-calendar-alt me-2 text-primary"></i> Generate Monthly Payroll
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item py-2" href="javascript:void(0)" id="generateDailyBtn">
+                                        <a class="dropdown-item py-2" href="javascript:void(0)" id="generateDailyBtn" data-toggle="modal" data-target="#generateDailyModal">
                                             <i class="fa fa-calendar-day me-2 text-success"></i> Generate Daily Payroll
                                         </a>
                                     </li>
@@ -676,7 +676,7 @@
                                         <hr class="dropdown-divider">
                                     </li>
                                     <li>
-                                        <a class="dropdown-item py-2" href="javascript:void(0)" id="generateBtn">
+                                        <a class="dropdown-item py-2" href="javascript:void(0)" id="generateBtn" data-toggle="modal" data-target="#generatePayrollModal">
                                             <i class="fa fa-hand-holding-usd me-2 text-warning"></i> Manual / Single Entry
                                         </a>
                                     </li>
@@ -896,7 +896,9 @@
                         <i class="fa fa-plus"></i>
                         <span>Generate Payroll</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="generatePayrollForm" action="{{ route('hr.payroll.generate') }}" method="POST"
                     data-ajax-validate="true">
@@ -929,7 +931,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">
                             <i class="fa fa-times me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-save"
@@ -953,7 +955,9 @@
                         <i class="fa fa-calendar-day"></i>
                         <span>Generate Daily Payrolls</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="generateDailyForm" action="{{ route('hr.payroll.generate-daily') }}" method="POST"
                     data-ajax-validate="true">
@@ -969,7 +973,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">
                             <i class="fa fa-times me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-save"
@@ -993,7 +997,9 @@
                         <i class="fa fa-calendar-alt"></i>
                         <span>Generate Monthly Payrolls</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="generateMonthlyForm" action="{{ route('hr.payroll.generate-monthly') }}" method="POST"
                     data-ajax-validate="true">
@@ -1009,7 +1015,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">
                             <i class="fa fa-times me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-save"
@@ -1033,7 +1039,9 @@
                         <i class="fa fa-file-invoice"></i>
                         <span>Payroll Details</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body" id="detailsContent">
                     <div class="text-center py-4">
@@ -1056,7 +1064,9 @@
                         <i class="fa fa-edit"></i>
                         <span>Edit Payroll</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="editPayrollForm" method="POST" data-ajax-validate="true">
                     @csrf
@@ -1080,7 +1090,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">
                             <i class="fa fa-times me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-save"
@@ -1143,19 +1153,19 @@
             }
 
             // Generate payroll modal
-            $('#generateBtn').click(function() {
+            $(document).on('click', '#generateBtn', function() {
                 $('#generatePayrollForm')[0].reset();
                 $('#generatePayrollModal').modal('show');
             });
 
             // Generate monthly modal
-            $('#generateMonthlyBtn').click(function() {
+            $(document).on('click', '#generateMonthlyBtn', function() {
                 $('#generateMonthlyForm')[0].reset();
                 $('#generateMonthlyModal').modal('show');
             });
 
             // Generate daily modal
-            $('#generateDailyBtn').click(function() {
+            $(document).on('click', '#generateDailyBtn', function() {
                 $('#generateDailyForm')[0].reset();
                 $('#generateDailyModal').modal('show');
             });

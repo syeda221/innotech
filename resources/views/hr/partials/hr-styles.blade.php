@@ -354,9 +354,23 @@
         gap: 10px;
     }
 
+    .modal-header.gradient .close,
     .modal-header.gradient .btn-close {
-        filter: brightness(0) invert(1);
-        opacity: 0.8;
+        color: #ffffff !important;
+        opacity: 0.85;
+        text-shadow: none;
+        background: transparent;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        line-height: 1;
+    }
+
+    .modal-header.gradient .close:hover,
+    .modal-header.gradient .btn-close:hover {
+        opacity: 1;
+        color: #ffffff !important;
     }
 
     .modal-body {
@@ -417,10 +431,14 @@
         border-radius: 10px;
         font-weight: 600;
         transition: all 0.2s;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
     }
 
     .btn-cancel:hover {
         background: #e2e8f0;
+        color: var(--hr-text);
     }
 
     .btn-save {

@@ -202,9 +202,9 @@
                         <p class="page-subtitle">Create and manage salary structures, then assign them to employees</p>
                     </div>
                     @if ($canCreate || $canEdit)
-                        <button class="btn btn-create" onclick="createNewStructure()">
+                        <a href="{{ route('hr.salary-structure.create') }}" class="btn btn-create">
                             <i class="fa fa-plus me-1"></i> Create New Structure
-                        </button>
+                        </a>
                     @endif
                 </div>
 
@@ -375,9 +375,9 @@
                                     <i class="fa fa-money-bill-wave"></i>
                                     <p>No salary structures created yet.</p>
                                     @if ($canCreate || $canEdit)
-                                        <button class="btn btn-create mt-3" onclick="createNewStructure()">
+                                        <a href="{{ route('hr.salary-structure.create') }}" class="btn btn-create mt-3">
                                             <i class="fa fa-plus me-1"></i> Create First Structure
-                                        </button>
+                                        </a>
                                     @endif
                                 </div>
                             </div>

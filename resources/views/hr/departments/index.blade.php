@@ -13,7 +13,7 @@
                         <p class="page-subtitle">Organize your company into departments</p>
                     </div>
                     @can('hr.departments.create')
-                        <button type="button" class="btn btn-create" id="createBtn">
+                        <button type="button" class="btn btn-create" id="createBtn" data-toggle="modal" data-target="#departmentModal">
                             <i class="fa fa-plus"></i> Add Department
                         </button>
                     @endcan
@@ -133,7 +133,9 @@
                         <i class="fa fa-building"></i>
                         <span>Add Department</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="departmentForm" action="{{ route('hr.departments.store') }}" method="POST"
                     data-ajax-validate="true">
@@ -151,7 +153,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">
                             <i class="fa fa-times me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-save">
@@ -171,7 +173,7 @@
     <script>
         $(document).ready(function() {
             // Create
-            $('#createBtn').click(function() {
+            $(document).on('click', '#createBtn', function() {
                 $('#edit_id').val('');
                 $('#departmentForm')[0].reset();
                 $('#modalLabel').html('<i class="fa fa-building"></i><span>Add Department</span>');

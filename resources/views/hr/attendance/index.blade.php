@@ -235,7 +235,7 @@
                         <p class="page-subtitle">{{ \Carbon\Carbon::parse($selectedDate)->format('d/m/Y') }}</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-light border" data-bs-toggle="modal"
+                        <button type="button" class="btn btn-light border" data-toggle="modal" data-target="#attendanceGuideModal" data-bs-toggle="modal"
                             data-bs-target="#attendanceGuideModal">
                             <i class="fa fa-question-circle text-primary me-1"></i> System Guide
                         </button>
@@ -264,8 +264,8 @@
                             <div class="modal-header gradient text-white">
                                 <h5 class="modal-title font-weight-bold"><i class="fa fa-info-circle me-2"></i> HR
                                     Attendance Guide</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
+                                <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal"
+                                    aria-label="Close"><span aria-hidden="true">&times;</span></button>
                             </div>
                             <div class="modal-body p-4">
                                 <div class="row g-4">

@@ -4301,6 +4301,7 @@ class ReportingController extends Controller
                 $ref = $references[$index] ?? '-';
 
                 $v1Expenses->push([
+                    'id'           => $v->id,
                     'source'       => 'V1',
                     'voucher_no'   => $v->evid ?? '-',
                     'entry_date'   => $v->entry_date,
@@ -4312,6 +4313,8 @@ class ReportingController extends Controller
                     'remarks'      => $v->remarks ?? '-',
                     'amount'       => $rowAmount,
                     'total_amount' => (float) $v->total_amount,
+                    'edit_url'     => route('expense_vouchers.edit', $v->id),
+                    'delete_url'   => route('expense_vouchers.destroy', $v->id),
                 ]);
             }
 
@@ -4320,6 +4323,7 @@ class ReportingController extends Controller
                 if ($categoryId && $categoryId !== 'all') continue;
 
                 $v1Expenses->push([
+                    'id'           => $v->id,
                     'source'       => 'V1',
                     'voucher_no'   => $v->evid ?? '-',
                     'entry_date'   => $v->entry_date,
@@ -4331,6 +4335,8 @@ class ReportingController extends Controller
                     'remarks'      => $v->remarks ?? '-',
                     'amount'       => (float) $v->total_amount,
                     'total_amount' => (float) $v->total_amount,
+                    'edit_url'     => route('expense_vouchers.edit', $v->id),
+                    'delete_url'   => route('expense_vouchers.destroy', $v->id),
                 ]);
             }
         }
@@ -4374,6 +4380,7 @@ class ReportingController extends Controller
                 }
 
                 $v2Expenses->push([
+                    'id'           => $vm->id,
                     'source'       => 'V2',
                     'voucher_no'   => $vm->voucher_no ?? '-',
                     'entry_date'   => $vm->date,
@@ -4385,6 +4392,8 @@ class ReportingController extends Controller
                     'remarks'      => $vm->remarks ?? '-',
                     'amount'       => (float) $vm->total_amount,
                     'total_amount' => (float) $vm->total_amount,
+                    'edit_url'     => null,
+                    'delete_url'   => null,
                 ]);
             }
         }

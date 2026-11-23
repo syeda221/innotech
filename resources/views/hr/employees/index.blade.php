@@ -17,7 +17,7 @@
                         <p class="page-subtitle">Manage your organization's employee database</p>
                     </div>
                     @can('hr.employees.create')
-                        <button type="button" class="btn btn-create" id="createBtn">
+                        <button type="button" class="btn btn-create" id="createBtn" data-toggle="modal" data-target="#employeeModal">
                             <i class="fa fa-user-plus"></i> Add Employee
                         </button>
                     @endcan
@@ -208,7 +208,9 @@
                         <i class="fa fa-user-plus"></i>
                         <span>Add Employee</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="employeeForm" action="{{ route('hr.employees.store') }}" method="POST"
                     enctype="multipart/form-data" data-ajax-validate="true">
@@ -445,7 +447,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">
                             <i class="fa fa-times me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-save">
@@ -459,6 +461,8 @@
     </div>
 
     <!-- Scripts -->
+    <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
+
     <style>
         .casual-day-option.selected {
             background: #007bff !important;
@@ -471,8 +475,6 @@
             background: #e3f0ff !important;
         }
     </style>
-    <!-- jQuery and Bootstrap are already loaded in the main layout -->
-
 
     <script>
         // Badge click handler for casual leave days
@@ -491,15 +493,7 @@
             });
         });
 
-        // Debug: Check if jQuery is loaded
-        console.log('jQuery loaded:', typeof jQuery !== 'undefined');
-        console.log('$ loaded:', typeof $ !== 'undefined');
-
         $(document).ready(function() {
-            console.log('Document ready fired');
-            console.log('createBtn exists:', $('#createBtn').length > 0);
-            console.log('employeeModal exists:', $('#employeeModal').length > 0);
-
             // Toggle custom shift fields
             $('#shift_id').change(function() {
                 if ($(this).val() === 'custom') {
@@ -511,14 +505,8 @@
                 }
             });
 
-            // Create Employee - using event delegation to ensure it works
+            // Create Employee
             $(document).on('click', '#createBtn', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Create button clicked!');
-                console.log('Modal element:', $('#employeeModal'));
-                console.log('Bootstrap modal method:', typeof $('#employeeModal').modal);
-
                 $('#edit_id').val('');
                 $('#employeeForm')[0].reset();
                 $('#is_docs_submitted').prop('checked', false);
@@ -533,9 +521,7 @@
                 $('#casual_leave_days_container .casual-day-option').removeClass('selected');
                 $('#casual_leave_days').val('');
 
-                console.log('About to show modal...');
                 $('#employeeModal').modal('show');
-                console.log('Modal show called');
             });
 
             // Edit Employee
@@ -898,7 +884,9 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="faceModalLabel">Register Face</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body text-center">
                     <input type="hidden" id="face_employee_id">
@@ -1012,6 +1000,9 @@
             const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
             (async function loadModels() {
                 try {
+                    if (typeof faceapi === 'undefined') {
+                        return;
+                    }
                     setStatus('loading');
                     await Promise.all([
                         faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
@@ -1172,16 +1163,19 @@
             });
 
             // Stop Camera on Close
-            document.getElementById('faceModal').addEventListener('hidden.bs.modal', function() {
-                if (faceStream) {
-                    faceStream.getTracks().forEach(track => track.stop());
-                    faceStream = null;
-                }
-                setStatus('reset');
-                $('#face_status').empty();
-                $('#btn-capture-face').prop('disabled', true).html(
-                    '<i class="fa fa-camera"></i> Capture & Save');
-            });
+            var faceModalEl = document.getElementById('faceModal');
+            if (faceModalEl) {
+                faceModalEl.addEventListener('hidden.bs.modal', function() {
+                    if (faceStream) {
+                        faceStream.getTracks().forEach(track => track.stop());
+                        faceStream = null;
+                    }
+                    setStatus('reset');
+                    $('#face_status').empty();
+                    $('#btn-capture-face').prop('disabled', true).html(
+                        '<i class="fa fa-camera"></i> Capture & Save');
+                });
+            }
         });
     </script>
 @endsection

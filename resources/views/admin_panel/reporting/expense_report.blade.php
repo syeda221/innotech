@@ -76,6 +76,7 @@
         max-height: calc(100vh - 280px);
         min-height: 380px;
         overflow-y: auto;
+        overflow-x: auto;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
         background: #ffffff;
@@ -288,15 +289,17 @@
                                 <th>Narration</th>
                                 <th>Remarks</th>
                                 <th class="text-end">Amount</th>
+                                <th class="text-center no-print" style="width: 140px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="expenseTableBody">
-                            <tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-search me-2"></i>Select date range and click Search to load expenses</td></tr>
+                            <tr><td colspan="10" class="text-center text-muted py-5"><i class="fas fa-search me-2"></i>Select date range and click Search to load expenses</td></tr>
                         </tbody>
                         <tfoot id="expenseTableFoot" style="display: none;">
                             <tr class="table-dark fw-bold">
                                 <td colspan="8" class="text-end">Grand Total:</td>
                                 <td class="text-end" id="footGrandTotal">Rs 0.00</td>
+                                <td class="no-print"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -360,7 +363,7 @@ $(function() {
                 $('#loader').hide();
 
                 if (!res.success) {
-                    $('#expenseTableBody').html('<tr><td colspan="9" class="text-center text-danger py-4">Error loading data</td></tr>');
+                    $('#expenseTableBody').html('<tr><td colspan="10" class="text-center text-danger py-4">Error loading data</td></tr>');
                     return;
                 }
 
@@ -372,7 +375,7 @@ $(function() {
 
                 // Build table
                 if (res.expenses.length === 0) {
-                    $('#expenseTableBody').html('<tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-inbox me-2"></i>No expenses found for selected filters</td></tr>');
+                    $('#expenseTableBody').html('<tr><td colspan="10" class="text-center text-muted py-5"><i class="fas fa-inbox me-2"></i>No expenses found for selected filters</td></tr>');
                     $('#categorySummaryBody').html('<div class="text-center text-muted py-5" style="font-size: .8rem;"><i class="fas fa-chart-pie me-1"></i> No data</div>');
                     return;
                 }
@@ -389,6 +392,23 @@ $(function() {
                     html += '<td style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="' + (exp.narration || '') + '">' + (exp.narration || '-') + '</td>';
                     html += '<td style="max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="' + (exp.remarks || '') + '">' + (exp.remarks || '-') + '</td>';
                     html += '<td class="text-end fw-bold text-danger">' + fmt(exp.amount) + '</td>';
+                    html += '<td class="text-center no-print" style="white-space: nowrap;">';
+                    html += '<div class="d-inline-flex align-items-center gap-1">';
+                    if (exp.edit_url) {
+                        html += '<a href="' + exp.edit_url + '" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 11px; height: 26px; line-height: 24px; border-radius: 4px;" title="Edit Expense Voucher">';
+                        html += '<i class="fas fa-edit me-1"></i>Edit';
+                        html += '</a>';
+                    }
+                    if (exp.delete_url) {
+                        html += '<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 btnDeleteExpense" data-url="' + exp.delete_url + '" data-voucherno="' + (exp.voucher_no || '') + '" style="font-size: 11px; height: 26px; line-height: 24px; border-radius: 4px;" title="Delete Expense Voucher">';
+                        html += '<i class="fas fa-trash-alt me-1"></i>Delete';
+                        html += '</button>';
+                    }
+                    if (!exp.edit_url && !exp.delete_url) {
+                        html += '<span class="text-muted small">-</span>';
+                    }
+                    html += '</div>';
+                    html += '</td>';
                     html += '</tr>';
                 });
 
@@ -415,7 +435,7 @@ $(function() {
             },
             error: function(xhr) {
                 $('#loader').hide();
-                $('#expenseTableBody').html('<tr><td colspan="9" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load data. Please try again.</td></tr>');
+                $('#expenseTableBody').html('<tr><td colspan="10" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load data. Please try again.</td></tr>');
             }
         });
     }
@@ -433,7 +453,7 @@ $(function() {
         $('.endDateInput').val(today);
         $('.categorySelect').val('all');
         // Clear results
-        $('#expenseTableBody').html('<tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-search me-2"></i>Select date range and click Search</td></tr>');
+        $('#expenseTableBody').html('<tr><td colspan="10" class="text-center text-muted py-5"><i class="fas fa-search me-2"></i>Select date range and click Search</td></tr>');
         $('#expenseTableFoot').hide();
         $('#categorySummaryBody').html('<div class="text-center text-muted py-5" style="font-size: .8rem;"><i class="fas fa-chart-pie me-1"></i> No data yet</div>');
         $('#categorySummaryFooter').css('display', 'none');
@@ -441,6 +461,62 @@ $(function() {
         $('#cardTotalRecords, #mobCardTotalRecords').text('0');
         $('#cardTotalCategories, #mobCardTotalCategories').text('0');
         $('#tableRecordCount').text('0 records');
+    });
+
+    // Delete expense voucher
+    $(document).on('click', '.btnDeleteExpense', function(e) {
+        e.preventDefault();
+        let deleteUrl = $(this).data('url');
+        let voucherNo = $(this).data('voucherno') || 'this voucher';
+
+        if (!deleteUrl) return;
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to delete Expense Voucher ' + voucherNo + '? This will reverse accounting entries.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Deleting...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: deleteUrl,
+                    type: 'POST',
+                    data: {
+                        _method: 'DELETE',
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(res) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            text: (res && res.message) ? res.message : 'Expense Voucher deleted successfully.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        fetchReport();
+                    },
+                    error: function(xhr) {
+                        let msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to delete Expense Voucher.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: msg
+                        });
+                    }
+                });
+            }
+        });
     });
 
     // Print button
@@ -456,7 +532,7 @@ $(function() {
         let csv = [];
         let rows = table.querySelectorAll('thead tr, tbody tr, tfoot tr');
         rows.forEach(function(row) {
-            let cols = row.querySelectorAll('th, td');
+            let cols = row.querySelectorAll('th:not(.no-print), td:not(.no-print)');
             let rowData = [];
             cols.forEach(function(col) {
                 let text = col.innerText.replace(/"/g, '""');

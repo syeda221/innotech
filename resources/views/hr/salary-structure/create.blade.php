@@ -722,6 +722,9 @@
                                             <button type="submit" class="btn btn-primary btn-lg">
                                                 <i class="fa fa-save"></i> Save Salary Structure
                                             </button>
+                                            <a href="{{ route('hr.salary-structure.index') }}" class="btn btn-secondary btn-lg ms-2">
+                                                <i class="fa fa-times"></i> Cancel
+                                            </a>
                                         </div>
                                     @endif
                                 </div>

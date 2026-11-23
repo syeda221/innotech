@@ -13,7 +13,7 @@
                         <p class="text-muted mb-0">Manage employee loans, advances, and repayment schedules</p>
                     </div>
                     @can('hr.loans.create')
-                        <button class="btn btn-create" data-bs-toggle="modal" data-bs-target="#addLoanModal">
+                        <button class="btn btn-create" data-toggle="modal" data-target="#addLoanModal" data-bs-toggle="modal" data-bs-target="#addLoanModal">
                             <i class="fa fa-plus"></i> New Loan Request
                         </button>
                     @endcan
@@ -93,7 +93,7 @@
                                     </div>
                                     <div class="dropdown">
                                         <button class="btn btn-light btn-sm border" type="button"
-                                            data-bs-toggle="dropdown">
+                                            data-toggle="dropdown" data-bs-toggle="dropdown">
                                             <i class="fa fa-ellipsis-v"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
@@ -191,7 +191,9 @@
             <div class="modal-content">
                 <div class="modal-header gradient text-white">
                     <h5 class="modal-title"><i class="fa fa-plus-circle me-2"></i> New Loan Request</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form action="{{ route('hr.loans.store') }}" method="POST" id="addLoanForm" data-ajax-validate="true">
                     @csrf
@@ -231,7 +233,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-save"><i class="fa fa-paper-plane me-1"></i> Submit
                             Request</button>
                     </div>
@@ -247,7 +249,9 @@
                 <div class="modal-header bg-warning-subtle">
                     <h5 class="modal-title text-warning-emphasis"><i class="fa fa-clock me-2"></i> Schedule Salary
                         Deduction</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form action="{{ route('hr.loans.schedule') }}" method="POST" id="scheduleForm"
                     data-ajax-validate="true">
@@ -283,7 +287,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-save bg-warning border-warning text-dark"><i
                                 class="fa fa-calendar-check me-1"></i> Schedule Deduction</button>
                     </div>
@@ -297,7 +301,9 @@
             <div class="modal-content">
                 <div class="modal-header border-0 bg-light">
                     <h5 class="modal-title"><i class="fa fa-history me-2 text-primary"></i> Loan History</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="p-4 bg-white border-bottom">
@@ -324,12 +330,12 @@
                     <div class="p-4 bg-light">
                         <ul class="nav nav-tabs nav-justified mb-3" id="historyTab" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="repayments-tab" data-bs-toggle="tab"
+                                <button class="nav-link active" id="repayments-tab" data-toggle="tab" data-target="#repayments" data-bs-toggle="tab"
                                     data-bs-target="#repayments" type="button" role="tab"
                                     aria-controls="repayments" aria-selected="true">Repayments</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="scheduled-tab" data-bs-toggle="tab"
+                                <button class="nav-link" id="scheduled-tab" data-toggle="tab" data-target="#scheduled" data-bs-toggle="tab"
                                     data-bs-target="#scheduled" type="button" role="tab" aria-controls="scheduled"
                                     aria-selected="false">Scheduled Deductions</button>
                             </li>

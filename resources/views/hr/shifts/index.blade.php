@@ -19,7 +19,7 @@
                                     <i class="fa fa-sync"></i> Sync to Device
                                 </button>
                             @endcan
-                            <button type="button" class="btn btn-create" id="createBtn">
+                            <button type="button" class="btn btn-create" id="createBtn" data-toggle="modal" data-target="#shiftModal">
                                 <i class="fa fa-plus"></i> Add Shift
                             </button>
                         </div>
@@ -160,7 +160,9 @@
                         <i class="fa fa-clock"></i>
                         <span>Add Shift</span>
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <form id="shiftForm" action="{{ route('hr.shifts.store') }}" method="POST" data-ajax-validate="true">
                     @csrf
@@ -217,7 +219,7 @@
                         </div>
                     </div>
                     <div class="modal-footer-modern">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-cancel" data-dismiss="modal" data-bs-dismiss="modal">
                             <i class="fa fa-times me-2"></i>Cancel
                         </button>
                         <button type="submit" class="btn btn-save">
@@ -266,7 +268,7 @@
                 });
             });
 
-            $('#createBtn').click(function() {
+            $(document).on('click', '#createBtn', function() {
                 $('#shiftForm')[0].reset();
                 $('#edit_id').val('');
                 $('#modalTitle').html('<i class="fa fa-clock"></i><span>Add Shift</span>');

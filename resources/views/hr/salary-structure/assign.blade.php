@@ -210,9 +210,14 @@
                                         <i class="fa fa-users"></i> <span id="selectedCount">0</span> Selected
                                     </span>
                                 </div>
-                                <button type="submit" class="btn btn-success btn-lg" id="assignBtn">
-                                    <i class="fa fa-check-circle"></i> Assign Salary Structure
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <a href="{{ route('hr.salary-structure.index') }}" class="btn btn-secondary btn-lg">
+                                        <i class="fa fa-times"></i> Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-success btn-lg" id="assignBtn">
+                                        <i class="fa fa-check-circle"></i> Assign Salary Structure
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -1504,6 +1504,23 @@
             // Run on page load
             clearStuckOverlays();
 
+            // Universal handler for modal close & cancel buttons (supports BS4 data-dismiss, BS5 data-bs-dismiss, and .btn-cancel)
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-dismiss="modal"], [data-bs-dismiss="modal"], .btn-cancel');
+                if (btn) {
+                    var modalEl = btn.closest('.modal');
+                    if (modalEl) {
+                        if (typeof $ !== 'undefined' && $(modalEl).modal) {
+                            $(modalEl).modal('hide');
+                        } else {
+                            modalEl.classList.remove('show');
+                            modalEl.style.display = 'none';
+                            clearStuckOverlays();
+                        }
+                    }
+                }
+            });
+
             // Emergency: Press Escape key to clear all stuck overlays/modals
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') {
