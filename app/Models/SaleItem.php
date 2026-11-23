@@ -31,4 +31,9 @@ class SaleItem extends Model
     {
         return $this->belongsTo(Warehouse::class);
     }
+
+    public function batch()
+    {
+        return $this->belongsTo(ProductBatch::class, 'batch_id');
+    }
 }

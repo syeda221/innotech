@@ -605,6 +605,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('reports/onhand', [ReportingController::class, 'onhand'])->middleware('permission:inventory.onhand.view')->name('reports.onhand');
 
+    Route::get('report/expense', [ReportingController::class, 'expense_report'])->middleware('permission:expense.voucher.view')->name('report.expense');
+    Route::post('report/expense/fetch', [ReportingController::class, 'fetchExpenseReport'])->middleware('permission:expense.voucher.view')->name('report.expense.fetch');
+
     // Return modules list for permission dropdowns (AJAX)
     Route::get('/modules/list', function () {
         return response()->json(\Illuminate\Support\Facades\DB::table('modules')->pluck('name'));

@@ -1540,6 +1540,9 @@
                         $productTitle .= $vExtraStr;
 
                         $batchNo = $item['batch_no'] ?? '';
+                        if (empty($batchNo) && !empty($item['batch_id'])) {
+                            $batchNo = \App\Models\ProductBatch::where('id', $item['batch_id'])->value('batch_no') ?? '';
+                        }
                         $packing = (float)($item['pieces_per_box'] ?? 1);
                         if ($packing <= 0) $packing = 1;
 
@@ -1599,16 +1602,7 @@
                                 }
                             @endphp
 
-                            @if(!empty($batchNo))
-                                <div class="item-sub-batch" style="font-size: 11px; font-weight: 700; color: #1e40af; margin-top: 2px;">
-                                    <i class="fas fa-layer-group me-1"></i>Batch: {{ $batchNo }}
-                                    @if(!empty($item['exp_date']))
-                                        <span class="text-muted ms-1" style="font-weight: normal; font-size: 10px;">(Exp: {{ \Carbon\Carbon::parse($item['exp_date'])->format('d-M-Y') }})</span>
-                                    @endif
-                                </div>
-                            @endif
-
-                            @if(!empty($itemSerialsList) && count($itemSerialsList) > 0)
+                            @if(!empty($itemSerialsList) && count($itemSerialsList) > 0 && !$showBatchCol)
                                 <div class="item-sub-sn">
                                     <i class="fas fa-barcode me-1"></i>S/N: {{ implode(', ', $itemSerialsList) }}
                                 </div>
@@ -1637,12 +1631,19 @@
                             </td>
                         @else
                             @if($showBatchCol)
-                            <td class="text-center">
+                            <td class="text-center font-monospace">
                                 @if(!empty($batchNo))
-                                    <span class="badge bg-light text-dark border">{{ $batchNo }}</span>
-                                @elseif(!empty($itemSerialsList))
-                                    <span class="badge bg-light text-dark border">S/N</span>
-                                @else
+                                    <div class="fw-bold text-dark" style="font-size: 10.5px;">{{ $batchNo }}</div>
+                                    @if(!empty($item['exp_date']))
+                                        <div class="text-muted" style="font-size: 8.5px; line-height: 1.1;">Exp: {{ \Carbon\Carbon::parse($item['exp_date'])->format('d-M-Y') }}</div>
+                                    @endif
+                                @endif
+                                @if(!empty($itemSerialsList) && count($itemSerialsList) > 0)
+                                    <div class="text-dark {{ !empty($batchNo) ? 'mt-1 pt-1 border-top' : '' }}" style="font-size: 9.5px; line-height: 1.2;">
+                                        {{ implode(', ', $itemSerialsList) }}
+                                    </div>
+                                @endif
+                                @if(empty($batchNo) && (empty($itemSerialsList) || count($itemSerialsList) === 0))
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>

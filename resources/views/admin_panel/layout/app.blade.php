@@ -1184,6 +1184,11 @@
                                             <li><a href="{{ route('report.balance_sheet') }}"><i class="fa-solid fa-scale-balanced"></i>
                                                     Balance Sheet</a></li>
                                         @endcan
+
+                                        @can('expense.voucher.view')
+                                            <li><a href="{{ route('report.expense') }}"><i class="fa-solid fa-file-invoice-dollar text-danger"></i>
+                                                    Expense Report</a></li>
+                                        @endcan
                                     </ul>
                                 </div>
                             @endcanany

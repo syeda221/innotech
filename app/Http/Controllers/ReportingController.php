@@ -4204,4 +4204,212 @@ class ReportingController extends Controller
         ]);
     }
 
+    // ============================================================
+    // EXPENSE REPORT
+    // ============================================================
+
+    public function expense_report()
+    {
+        $expenseCategories = DB::table('expense_categories')->orderBy('name')->get();
+        return view('admin_panel.reporting.expense_report', compact('expenseCategories'));
+    }
+
+    public function fetchExpenseReport(Request $request)
+    {
+        $startDate = $request->start_date;
+        $endDate   = $request->end_date;
+        $categoryId = $request->category_id;
+
+        // --- V1: expense_vouchers table ---
+        $v1Expenses = collect();
+        $v1Query = DB::table('expense_vouchers');
+
+        if ($startDate && $endDate) {
+            $start = date('Y-m-d', strtotime($startDate));
+            $end   = date('Y-m-d', strtotime($endDate));
+            $v1Query->whereBetween('entry_date', [$start, $end]);
+        } elseif ($startDate) {
+            $v1Query->whereDate('entry_date', '>=', date('Y-m-d', strtotime($startDate)));
+        } elseif ($endDate) {
+            $v1Query->whereDate('entry_date', '<=', date('Y-m-d', strtotime($endDate)));
+        }
+
+        $v1Raw = $v1Query->orderBy('entry_date', 'desc')->get();
+
+        foreach ($v1Raw as $v) {
+            $amounts    = json_decode($v->amount, true) ?? [];
+            $categories = json_decode($v->row_account_id, true) ?? [];
+            $narrations = json_decode($v->narration_id, true) ?? [];
+            $references = json_decode($v->reference_no ?? '[]', true) ?? [];
+
+            // Resolve party name
+            $partyName = '-';
+            $typeLabel = '-';
+            if (is_numeric($v->type)) {
+                $accountHead = DB::table('account_heads')->where('id', $v->type)->first();
+                $account = DB::table('accounts')->where('id', $v->party_id)->first();
+                $typeLabel = $accountHead->name ?? 'Account';
+                $partyName = $account->title ?? '-';
+            } elseif ($v->type === 'vendor') {
+                $vendor = DB::table('vendors')->where('id', $v->party_id)->first();
+                $typeLabel = 'Vendor';
+                $partyName = $vendor->name ?? '-';
+            } elseif ($v->type === 'customer') {
+                $customer = DB::table('customers')->where('id', $v->party_id)->first();
+                $typeLabel = 'Customer';
+                $partyName = $customer->customer_name ?? '-';
+            } elseif ($v->type === 'walkin') {
+                $walkin = DB::table('customers')->where('id', $v->party_id)->where('customer_type', 'Walking Customer')->first();
+                $typeLabel = 'Walk-in';
+                $partyName = $walkin->customer_name ?? '-';
+            } else {
+                $account = DB::table('accounts')->where('id', $v->party_id)->first();
+                $typeLabel = 'Account';
+                $partyName = $account->title ?? '-';
+            }
+
+            // Build row-level entries
+            $loopItems = !empty($categories) ? $categories : (!empty($amounts) ? $amounts : []);
+            foreach ($loopItems as $index => $catId) {
+                $rowAmount = (float) ($amounts[$index] ?? 0);
+                if ($rowAmount <= 0) continue;
+
+                // Resolve category name
+                $catName = '-';
+                $expCat = DB::table('expense_categories')->where('id', $catId)->first();
+                if ($expCat) {
+                    $catName = $expCat->name;
+                    // Filter by category if requested
+                    if ($categoryId && $categoryId !== 'all' && (int)$catId !== (int)$categoryId) {
+                        continue;
+                    }
+                } else {
+                    $acc = DB::table('accounts')->where('id', $catId)->first();
+                    $catName = $acc->title ?? 'Other';
+                    if ($categoryId && $categoryId !== 'all') {
+                        continue; // Skip non-category items when filtering
+                    }
+                }
+
+                // Resolve narration
+                $narrId = $narrations[$index] ?? null;
+                $narrText = '-';
+                if ($narrId) {
+                    $narrText = DB::table('narrations')->where('id', $narrId)->value('narration') ?? '-';
+                }
+
+                $ref = $references[$index] ?? '-';
+
+                $v1Expenses->push([
+                    'source'       => 'V1',
+                    'voucher_no'   => $v->evid ?? '-',
+                    'entry_date'   => $v->entry_date,
+                    'type'         => $typeLabel,
+                    'party_name'   => $partyName,
+                    'category'     => $catName,
+                    'narration'    => $narrText,
+                    'reference'    => $ref,
+                    'remarks'      => $v->remarks ?? '-',
+                    'amount'       => $rowAmount,
+                    'total_amount' => (float) $v->total_amount,
+                ]);
+            }
+
+            // If no row items but has total, add single row
+            if (empty($loopItems) && (float)$v->total_amount > 0) {
+                if ($categoryId && $categoryId !== 'all') continue;
+
+                $v1Expenses->push([
+                    'source'       => 'V1',
+                    'voucher_no'   => $v->evid ?? '-',
+                    'entry_date'   => $v->entry_date,
+                    'type'         => $typeLabel,
+                    'party_name'   => $partyName,
+                    'category'     => '-',
+                    'narration'    => '-',
+                    'reference'    => '-',
+                    'remarks'      => $v->remarks ?? '-',
+                    'amount'       => (float) $v->total_amount,
+                    'total_amount' => (float) $v->total_amount,
+                ]);
+            }
+        }
+
+        // --- V2: voucher_masters table (type=expense) ---
+        $v2Expenses = collect();
+        $v2Query = DB::table('voucher_masters')
+            ->where('voucher_type', 'expense');
+
+        if ($startDate && $endDate) {
+            $start = date('Y-m-d', strtotime($startDate));
+            $end   = date('Y-m-d', strtotime($endDate));
+            $v2Query->whereBetween('date', [$start, $end]);
+        } elseif ($startDate) {
+            $v2Query->whereDate('date', '>=', date('Y-m-d', strtotime($startDate)));
+        } elseif ($endDate) {
+            $v2Query->whereDate('date', '<=', date('Y-m-d', strtotime($endDate)));
+        }
+
+        // Skip category filter for V2 (no category info in voucher_masters)
+        if (!$categoryId || $categoryId === 'all') {
+            $v2Raw = $v2Query->orderBy('date', 'desc')->get();
+
+            foreach ($v2Raw as $vm) {
+                $partyName = '-';
+                $typeLabel = '-';
+                if ($vm->party_type && $vm->party_id) {
+                    if (str_contains($vm->party_type, 'Vendor')) {
+                        $vendor = DB::table('vendors')->where('id', $vm->party_id)->first();
+                        $typeLabel = 'Vendor';
+                        $partyName = $vendor->name ?? '-';
+                    } elseif (str_contains($vm->party_type, 'Customer')) {
+                        $customer = DB::table('customers')->where('id', $vm->party_id)->first();
+                        $typeLabel = 'Customer';
+                        $partyName = $customer->customer_name ?? '-';
+                    } else {
+                        $account = DB::table('accounts')->where('id', $vm->party_id)->first();
+                        $typeLabel = 'Account';
+                        $partyName = $account->title ?? '-';
+                    }
+                }
+
+                $v2Expenses->push([
+                    'source'       => 'V2',
+                    'voucher_no'   => $vm->voucher_no ?? '-',
+                    'entry_date'   => $vm->date,
+                    'type'         => $typeLabel,
+                    'party_name'   => $partyName,
+                    'category'     => '-',
+                    'narration'    => $vm->remarks ?? '-',
+                    'reference'    => '-',
+                    'remarks'      => $vm->remarks ?? '-',
+                    'amount'       => (float) $vm->total_amount,
+                    'total_amount' => (float) $vm->total_amount,
+                ]);
+            }
+        }
+
+        // Merge both sources
+        $allExpenses = $v1Expenses->merge($v2Expenses)->sortByDesc('entry_date')->values();
+
+        // Category-wise summary
+        $categorySummary = $allExpenses->groupBy('category')->map(function ($items, $catName) {
+            return [
+                'category'    => $catName,
+                'count'       => $items->count(),
+                'total'       => round($items->sum('amount'), 2),
+            ];
+        })->sortByDesc('total')->values();
+
+        $grandTotal = round($allExpenses->sum('amount'), 2);
+
+        return response()->json([
+            'success'          => true,
+            'expenses'         => $allExpenses,
+            'category_summary' => $categorySummary,
+            'grand_total'      => $grandTotal,
+            'total_records'    => $allExpenses->count(),
+        ]);
+    }
+
 }

@@ -1610,6 +1610,10 @@
                                     </select>
                                     <input type="hidden" class="product-id-hidden" name="product_id[]">
                                     <input type="hidden" class="variant-data-hidden" name="color[]">
+                                    <input type="hidden" class="batch-id-hidden" name="batch_id[]">
+                                    <input type="hidden" class="batch-no-hidden" name="batch_no[]">
+                                    <input type="hidden" class="serials-hidden" name="serials[]">
+                                    <div class="row-tracking-badges mt-1 d-flex flex-wrap gap-1"></div>
                                     <input type="hidden" class="item-code-display">
                                     <input type="hidden" class="size-h">
                                     <input type="hidden" class="size-w">
