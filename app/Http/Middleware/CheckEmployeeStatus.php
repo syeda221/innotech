@@ -19,6 +19,11 @@ class CheckEmployeeStatus
         if (Auth::check()) {
             $user = Auth::user();
 
+            // Super Admin should never be logged out by employee status check
+            if ($user->isSuperAdmin()) {
+                return $next($request);
+            }
+
             // Check if user's employee profile is active
             if (! $user->isEmployeeActive()) {
                 Auth::logout();

@@ -17,6 +17,13 @@
             position: relative;
         }
 
+        /* Utility classes for Bootstrap 4 flex gap */
+        .gap-1 { gap: 0.25rem !important; }
+        .gap-1\.5 { gap: 0.375rem !important; }
+        .gap-2 { gap: 0.5rem !important; }
+        .gap-3 { gap: 1rem !important; }
+        .gap-4 { gap: 1.5rem !important; }
+
         /* Base Submenu Styling */
         .nav-item .submenu,
         .mega-menu .submenu {
@@ -346,6 +353,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="Zare Bootstrap 4 Admin Template">
 
     <!--=========================*
@@ -1106,7 +1114,7 @@
                         <li class="nav-item">
                             @canany(['item.stock.report.view', 'purchase.report.view', 'sale.report.view',
                                 'customer.ledger.view', 'vendor.ledger.view', 'inventory.onhand.view', 'profit.loss.report.view',
-                                'recovery.report.view', 'payable.report.view', 'parties.balance.report.view', 'aging.report.view', 'balance.sheet.report.view', 'executive.report.view'])
+                                'recovery.report.view', 'payable.report.view', 'parties.balance.report.view', 'aging.report.view', 'balance.sheet.report.view', 'executive.report.view', 'expense.voucher.view'])
                                 <a href="#" class="nav-link">
                                     <i class="menu_icon fas fa-clipboard-list"></i>
                                     <span class="menu-title">Reports</span>
@@ -1376,6 +1384,13 @@
     </div>
     <!-- Jquery Js -->
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
+    <script>
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+    </script>
     <!-- bootstrap 4 js -->
     <script src="{{ asset('assets/js/popper.min.js') }}"></script>
     <script src="{{ asset('assets/js/bootstrap.min.js') }}"></script>

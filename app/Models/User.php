@@ -61,6 +61,11 @@ class User extends Authenticatable
      */
     public function isEmployeeActive()
     {
+        // Super Admin users can always login and should never be deactivated by employee status
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
         $employee = $this->employee;
 
         // If no employee profile, user can login (admin users, etc.)
@@ -68,8 +73,9 @@ class User extends Authenticatable
             return true;
         }
 
-        // Only active employees can login
-        return $employee->status === 'active';
+        // Only active employees can login (case-insensitive check)
+        $status = strtolower(trim((string) ($employee->status ?? '')));
+        return in_array($status, ['active', '1', 'true', 'approved']);
     }
 
     //    public function roles()

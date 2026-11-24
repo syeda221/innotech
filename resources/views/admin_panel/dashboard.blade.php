@@ -516,7 +516,7 @@
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
-        padding: 1.4rem 1.6rem;
+        padding: 1.25rem 1.25rem;
         box-shadow: var(--shadow-sm);
         display: flex;
         flex-direction: column;
@@ -548,7 +548,7 @@
         border-radius: 99px;
         border: 1px solid var(--border);
     }
-    .panel-body-flex { flex: 1; width: 100%; }
+    .panel-body-flex { flex: 1; width: 100%; min-width: 0; }
 
     /* Layout Grids */
     .grid-3col {
@@ -559,7 +559,7 @@
     }
     .grid-4col {
         display: grid;
-        grid-template-columns: 1fr 1.25fr 1fr 1fr;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 1.25rem;
         margin-bottom: 1.75rem;
     }
@@ -573,17 +573,18 @@
     /* Business Counters Grid */
     .biz-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
     }
     .biz-box {
         background: #f8fafc;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
-        padding: 0.9rem;
+        padding: 0.75rem 0.85rem;
         display: flex;
         align-items: center;
-        gap: 0.85rem;
+        gap: 0.65rem;
+        min-width: 0;
         transition: all 0.2s;
     }
     .biz-box:hover {
@@ -591,18 +592,23 @@
         border-color: #cbd5e1;
         box-shadow: var(--shadow-sm);
     }
+    .biz-info {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+    }
     .biz-icon {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
         border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1rem;
+        font-size: 0.95rem;
         flex-shrink: 0;
     }
     .biz-val {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
         font-weight: 900;
         color: var(--text-primary);
         line-height: 1.2;
@@ -613,6 +619,10 @@
         color: var(--text-muted);
         text-transform: uppercase;
         letter-spacing: 0.04em;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Rank List */
@@ -793,8 +803,12 @@
     }
 
     /* Responsive */
+    @media (max-width: 1440px) {
+        .grid-4col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
     @media (max-width: 1200px) {
-        .grid-3col, .grid-4col, .grid-2col { grid-template-columns: 1fr; }
+        .grid-3col, .grid-2col { grid-template-columns: 1fr; }
+        .grid-4col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
@@ -1277,7 +1291,7 @@
                             <div class="biz-box">
                         @endcan
                             <div class="biz-icon" style="background:#e0f2fe; color:#0284c7;"><i class="fas fa-users"></i></div>
-                            <div>
+                            <div class="biz-info">
                                 <div class="biz-val">{{ number_format($customerscount) }}</div>
                                 <div class="biz-lbl">Customers</div>
                             </div>
@@ -1294,7 +1308,7 @@
                             <div class="biz-box">
                         @endcan
                             <div class="biz-icon" style="background:#f3e8ff; color:#8b5cf6;"><i class="fas fa-truck"></i></div>
-                            <div>
+                            <div class="biz-info">
                                 <div class="biz-val">{{ number_format($vendorCount) }}</div>
                                 <div class="biz-lbl">Vendors</div>
                             </div>
@@ -1311,7 +1325,7 @@
                             <div class="biz-box">
                         @endcan
                             <div class="biz-icon" style="background:#fef3c7; color:#d97706;"><i class="fas fa-box-open"></i></div>
-                            <div>
+                            <div class="biz-info">
                                 <div class="biz-val">{{ number_format($productCount) }}</div>
                                 <div class="biz-lbl">Products</div>
                             </div>
@@ -1328,7 +1342,7 @@
                             <div class="biz-box">
                         @endcan
                             <div class="biz-icon" style="background:#ecfdf5; color:#10b981;"><i class="fas fa-user-tie"></i></div>
-                            <div>
+                            <div class="biz-info">
                                 <div class="biz-val">{{ number_format($employeeCount) }}</div>
                                 <div class="biz-lbl">Staff</div>
                             </div>

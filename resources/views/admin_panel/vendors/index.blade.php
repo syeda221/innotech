@@ -142,9 +142,74 @@
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
-        padding: 14px 18px;
+        padding: 16px 20px;
         margin-bottom: 20px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .vendor-filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+    }
+    .vendor-filter-item {
+        flex: 1 1 140px;
+        min-width: 130px;
+    }
+    .vendor-filter-item.search-box {
+        flex: 2 1 260px;
+        min-width: 220px;
+    }
+    .vendor-filter-item.action-buttons {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .vendor-filter-form .form-control,
+    .vendor-filter-form .custom-select {
+        height: 38px !important;
+        border-radius: 8px !important;
+        border: 1.5px solid #cbd5e1 !important;
+        font-size: 0.85rem !important;
+        background-color: #f8fafc;
+        color: #334155;
+        width: 100%;
+        transition: all 0.2s ease;
+    }
+    .vendor-filter-form .form-control:focus,
+    .vendor-filter-form .custom-select:focus {
+        background-color: #ffffff;
+        border-color: #4f46e5 !important;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12) !important;
+    }
+    .vendor-filter-form .btn-search {
+        height: 38px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 18px;
+        white-space: nowrap;
+    }
+    .vendor-filter-form .btn-reset {
+        height: 38px;
+        width: 38px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: #f8fafc;
+        border: 1.5px solid #cbd5e1;
+        color: #64748b;
+        transition: all 0.2s ease;
+    }
+    .vendor-filter-form .btn-reset:hover {
+        background: #e2e8f0;
+        color: #1e293b;
     }
 
     /* Main Table Container */
@@ -348,7 +413,7 @@
         </div>
         <div class="vendor-action-hub">
             @can('vendors.create')
-                <button type="button" class="btn-vendor-primary" id="btnAddVendor">
+                <button type="button" class="btn-vendor-primary" id="btnAddVendor" data-toggle="modal" data-target="#vendorModal" data-bs-toggle="modal" data-bs-target="#vendorModal">
                     <i class="fas fa-plus"></i> Add Vendor
                 </button>
             @endcan
@@ -404,23 +469,23 @@
         </div>
     </div>
 
-    {{-- Location & Keyword Single-Line Filter Bar --}}
+    {{-- Location & Keyword Filter Bar --}}
     <div class="vendor-filter-bar">
-        <form method="GET" action="{{ route('vendors.index') }}" class="d-flex align-items-center flex-wrap flex-xl-nowrap gap-2">
+        <form method="GET" action="{{ route('vendors.index') }}" class="vendor-filter-form">
             <!-- Keyword Search -->
-            <div class="flex-grow-1" style="min-width: 240px;">
+            <div class="vendor-filter-item search-box">
                 <div class="position-relative">
                     <i class="fas fa-search position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px;"></i>
-                    <input type="text" name="search" class="form-control form-control-sm ps-4" 
+                    <input type="text" name="search" class="form-control" 
                         placeholder="Search vendor name, phone, email, address..." 
                         value="{{ request('search') }}" 
-                        style="height: 38px; padding-left: 36px !important; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                        style="padding-left: 36px !important;">
                 </div>
             </div>
 
             <!-- Party Role -->
-            <div style="width: 140px; flex-shrink: 0;">
-                <select name="party_type" class="form-select form-select-sm" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
+            <div class="vendor-filter-item">
+                <select name="party_type" class="custom-select form-control">
                     <option value="">All Roles</option>
                     <option value="vendor" {{ request('party_type') == 'vendor' ? 'selected' : '' }}>Vendor Only</option>
                     <option value="both" {{ request('party_type') == 'both' ? 'selected' : '' }}>Both (Cust &amp; Vend)</option>
@@ -428,8 +493,8 @@
             </div>
 
             <!-- Province -->
-            <div style="width: 145px; flex-shrink: 0;">
-                <select name="province" id="vend_filter_province" class="form-select form-select-sm" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
+            <div class="vendor-filter-item">
+                <select name="province" id="vend_filter_province" class="custom-select form-control">
                     <option value="">All Provinces</option>
                     @foreach(app(\App\Services\LocationService::class)->getProvinces() as $p)
                         <option value="{{ $p }}" {{ request('province') == $p ? 'selected' : '' }}>{{ $p }}</option>
@@ -438,8 +503,8 @@
             </div>
 
             <!-- City -->
-            <div style="width: 145px; flex-shrink: 0;">
-                <select name="city" id="vend_filter_city" class="form-select form-select-sm" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
+            <div class="vendor-filter-item">
+                <select name="city" id="vend_filter_city" class="custom-select form-control">
                     <option value="">All Cities</option>
                     @foreach(app(\App\Services\LocationService::class)->getCities(request('province')) as $c)
                         <option value="{{ $c }}" {{ request('city') == $c ? 'selected' : '' }}>{{ $c }}</option>
@@ -448,8 +513,8 @@
             </div>
 
             <!-- Zone -->
-            <div style="width: 145px; flex-shrink: 0;">
-                <select name="zone" id="vend_filter_zone" class="form-select form-select-sm" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
+            <div class="vendor-filter-item">
+                <select name="zone" id="vend_filter_zone" class="custom-select form-control">
                     <option value="">All Zones</option>
                     @if(isset($zones))
                         @foreach($zones as $z)
@@ -460,8 +525,8 @@
             </div>
 
             <!-- Area -->
-            <div style="width: 145px; flex-shrink: 0;">
-                <select name="area" id="vend_filter_area" class="form-select form-select-sm" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
+            <div class="vendor-filter-item">
+                <select name="area" id="vend_filter_area" class="custom-select form-control">
                     <option value="">All Areas</option>
                     @foreach(app(\App\Services\LocationService::class)->getAreas(request('city')) as $a)
                         <option value="{{ $a }}" {{ request('area') == $a ? 'selected' : '' }}>{{ $a }}</option>
@@ -470,11 +535,11 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="d-flex align-items-center gap-1" style="flex-shrink: 0;">
-                <button type="submit" class="btn btn-primary btn-sm px-3 fw-bold" style="height: 38px; border-radius: 8px; white-space: nowrap;">
-                    <i class="fas fa-search me-1"></i> Search
+            <div class="vendor-filter-item action-buttons">
+                <button type="submit" class="btn btn-primary btn-search">
+                    <i class="fas fa-search" style="margin-right: 6px;"></i> Search
                 </button>
-                <a href="{{ route('vendors.index') }}" class="btn btn-light border btn-sm px-3 text-secondary" title="Reset Filters" style="height: 38px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;">
+                <a href="{{ route('vendors.index') }}" class="btn-reset" title="Reset Filters">
                     <i class="fas fa-undo"></i>
                 </a>
             </div>
@@ -517,7 +582,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($vendors as $key => $v)
+                    @foreach ($vendors as $key => $v)
                         <tr id="vendor-row-{{ $v->id }}">
                             <td class="text-center fw-bold text-muted">{{ $key + 1 }}</td>
                             <td>
@@ -609,17 +674,7 @@
                                 </div>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center py-5">
-                                <div class="text-muted">
-                                    <i class="fas fa-truck fa-3x mb-3 text-secondary" style="opacity: 0.3;"></i>
-                                    <div class="fw-bold fs-6">No Vendors Found</div>
-                                    <small>Try clearing search filters or add a new vendor.</small>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
@@ -700,7 +755,9 @@
                     <h5 class="modal-title fw-bold text-dark mb-0" id="modalTitle">
                         <i class="fas fa-truck text-primary me-2"></i>New Vendor
                     </h5>
-                    <button type="button" class="btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" style="font-size: 1.5rem; line-height: 1; opacity: 0.7;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
 
                 <div class="modal-body p-4" style="max-height: 80vh; overflow-y: auto;">
@@ -887,21 +944,28 @@
 @section('js')
 <script>
     $(document).ready(function() {
-        // Initialize DataTable
-        if ($.fn.DataTable.isDataTable('.datanew')) {
-            $('.datanew').DataTable().destroy();
+        // Initialize DataTable safely
+        try {
+            if ($.fn.DataTable && $.fn.DataTable.isDataTable('.datanew')) {
+                $('.datanew').DataTable().destroy();
+            }
+            if ($.fn.DataTable) {
+                $('.datanew').DataTable({
+                    "pageLength": 10,
+                    "order": [],
+                    "language": {
+                        "search": "",
+                        "searchPlaceholder": "Filter records...",
+                        "emptyTable": "No vendors found. Click 'Add Vendor' to create one."
+                    },
+                    "dom": "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                        "<'row'<'col-sm-12'tr>>" +
+                        "<'row mt-3'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                });
+            }
+        } catch (e) {
+            console.warn('DataTable initialization skipped:', e);
         }
-        $('.datanew').DataTable({
-            "pageLength": 10,
-            "order": [],
-            "language": {
-                "search": "",
-                "searchPlaceholder": "Filter records..."
-            },
-            "dom": "<'row mb-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
-                "<'row'<'col-sm-12'tr>>" +
-                "<'row mt-3'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-        });
 
         // Function to clear all modal error states
         function clearModalErrors() {
@@ -911,8 +975,20 @@
             $('#vendorFormAlertMsg').text('');
         }
 
-        // Open Modal for Create
-        $('#btnAddVendor').click(function() {
+        // Helper to show modal safely
+        function openVendorModal() {
+            if (typeof $.fn.modal !== 'undefined') {
+                $('#vendorModal').modal('show');
+            } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var modalEl = document.getElementById('vendorModal');
+                var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        }
+
+        // Open Modal for Create (Delegated for 100% reliability)
+        $(document).on('click', '#btnAddVendor', function(e) {
+            e.preventDefault();
             $('#vendorForm')[0].reset();
             clearModalErrors();
             $('#vendor_id').val('');
@@ -923,7 +999,7 @@
             $('#vzone').val('').trigger('change');
             $('#varea').val('').trigger('change');
             $('#modalTitle').html('<i class="fas fa-truck text-primary me-2"></i>New Vendor');
-            $('#vendorModal').modal('show');
+            openVendorModal();
             setTimeout(function() { $('#vname').focus(); }, 300);
         });
 
@@ -960,7 +1036,7 @@
                     }, 120);
 
                     $('#modalTitle').html('<i class="fas fa-edit text-primary me-2"></i>Edit Vendor');
-                    $('#vendorModal').modal('show');
+                    openVendorModal();
                     setTimeout(function() { $('#vname').focus(); }, 300);
                 } else {
                     Swal.fire('Error', 'Unable to load vendor details.', 'error');
