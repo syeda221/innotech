@@ -43,9 +43,105 @@
             background: #ffffff;
             border-radius: 12px;
             border: 1px solid #e2e8f0;
-            padding: 16px;
+            padding: 14px 16px;
             margin-bottom: 20px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .cust-filter-bar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .cust-col-search {
+            flex: 2 1 240px;
+            min-width: 200px;
+        }
+
+        .cust-col-select {
+            flex: 1 1 135px;
+            min-width: 125px;
+        }
+
+        .cust-col-actions {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .cust-filter-input,
+        .cust-filter-select {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 38px !important;
+            border-radius: 8px !important;
+            border: 1.5px solid #cbd5e1 !important;
+            font-size: 0.86rem !important;
+            font-weight: 500 !important;
+            color: #1e293b !important;
+            background-color: #ffffff !important;
+            box-sizing: border-box !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+
+        .cust-filter-input {
+            padding: 6px 12px 6px 36px !important;
+        }
+
+        .cust-filter-select {
+            padding: 6px 28px 6px 12px !important;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 10px center !important;
+            background-size: 11px 9px !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            cursor: pointer !important;
+            line-height: 1.5 !important;
+        }
+
+        .cust-filter-select::-ms-expand {
+            display: none !important;
+        }
+
+        .cust-filter-input:focus,
+        .cust-filter-select:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+            outline: none !important;
+        }
+
+        @media (max-width: 991px) {
+            .cust-col-search {
+                flex: 1 1 100%;
+                min-width: 100%;
+            }
+            .cust-col-select {
+                flex: 1 1 calc(50% - 10px);
+                min-width: 130px;
+            }
+            .cust-col-actions {
+                flex: 1 1 100%;
+                justify-content: flex-end;
+                margin-left: 0;
+                margin-top: 4px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .cust-col-select {
+                flex: 1 1 100%;
+            }
         }
 
         .detail-item {
@@ -147,127 +243,118 @@
                     </div>
                 @endif
 
-                <!-- Modern Single-Line Filter Bar -->
-                <div class="filter-card py-2.5 px-3 mb-3" style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-                    <form method="GET" action="{{ route('customers.index') }}" class="d-flex align-items-center flex-wrap flex-xl-nowrap gap-2">
-                        
-                        <!-- 1. Universal Search Input -->
-                        <div class="flex-grow-1" style="min-width: 250px;">
-                            <div class="position-relative">
-                                <i class="fas fa-search position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px;"></i>
-                                <input type="text" name="search" class="form-control form-control-sm" 
-                                    placeholder="Search by name, code, phone, address..." 
-                                    value="{{ request('search') }}" 
-                                    style="height: 36px; padding-left: 34px !important; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                <!-- Modern Responsive Filter Bar -->
+                <div class="filter-card py-2.5 px-3 mb-3">
+                    <form method="GET" action="{{ route('customers.index') }}" class="mb-0">
+                        <div class="cust-filter-bar">
+                            <!-- 1. Universal Search Input -->
+                            <div class="cust-col-search">
+                                <div class="position-relative">
+                                    <i class="fas fa-search position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px;"></i>
+                                    <input type="text" name="search" class="cust-filter-input" 
+                                        placeholder="Search by name, code, phone, address..." 
+                                        value="{{ request('search') }}">
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- 2. Province Filter -->
-                        <div style="width: 140px; flex-shrink: 0;">
-                            <select name="province" id="cust_search_province" class="form-select form-select-sm" 
-                                style="height: 36px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
-                                <option value="">All Provinces</option>
-                                @foreach(app(\App\Services\LocationService::class)->getProvinces() as $p)
-                                    <option value="{{ $p }}" {{ request('province') == $p ? 'selected' : '' }}>{{ $p }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- 3. City Filter -->
-                        <div style="width: 140px; flex-shrink: 0;">
-                            <select name="city" id="cust_search_city" class="form-select form-select-sm" 
-                                style="height: 36px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
-                                <option value="">All Cities</option>
-                                @foreach(app(\App\Services\LocationService::class)->getCities(request('province')) as $c)
-                                    <option value="{{ $c }}" {{ request('city') == $c ? 'selected' : '' }}>{{ $c }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- 4. Area Filter -->
-                        <div style="width: 140px; flex-shrink: 0;">
-                            <select name="area" id="cust_search_area" class="form-select form-select-sm" 
-                                style="height: 36px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
-                                <option value="">All Areas</option>
-                                @foreach(app(\App\Services\LocationService::class)->getAreas(request('city')) as $a)
-                                    <option value="{{ $a }}" {{ request('area') == $a ? 'selected' : '' }}>{{ $a }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- 5. Customer Type Dropdown -->
-                        <div style="width: 160px; flex-shrink: 0;">
-                            <select name="customer_type" class="form-select form-select-sm" style="height: 36px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.85rem;">
-                                <option value="">All Types</option>
-                                @if(isset($dropdownLookups['customer_types']))
-                                    @foreach($dropdownLookups['customer_types'] as $optVal => $optLabel)
-                                        <option value="{{ $optVal }}" {{ request('customer_type') == $optVal ? 'selected' : '' }}>
-                                            {{ $optLabel }}
-                                        </option>
+                            <!-- 2. Province Filter -->
+                            <div class="cust-col-select">
+                                <select name="province" id="cust_search_province" class="cust-filter-select form-select-sm">
+                                    <option value="">All Provinces</option>
+                                    @foreach(app(\App\Services\LocationService::class)->getProvinces() as $p)
+                                        <option value="{{ $p }}" {{ request('province') == $p ? 'selected' : '' }}>{{ $p }}</option>
                                     @endforeach
-                                @endif
-                            </select>
-                        </div>
-
-                        <!-- 6. Action Buttons -->
-                        <div class="d-flex align-items-center gap-1" style="flex-shrink: 0;">
-                            <button type="submit" class="btn btn-primary btn-sm px-3 fw-bold" style="height: 36px; border-radius: 8px; white-space: nowrap;">
-                                <i class="fas fa-search me-1"></i> Search
-                            </button>
-                            <a href="{{ route('customers.index') }}" class="btn btn-light border btn-sm px-2.5 text-secondary" title="Reset Filters" style="height: 36px; border-radius: 8px; display: inline-flex; align-items: center;">
-                                <i class="fas fa-undo"></i>
-                            </a>
-                            <button type="button" class="btn btn-outline-secondary btn-sm px-2.5" data-bs-toggle="collapse" data-bs-target="#moreCustomerFilters" data-toggle="collapse" data-target="#moreCustomerFilters" title="More Filters" style="height: 36px; border-radius: 8px; display: inline-flex; align-items: center;">
-                                <i class="fas fa-sliders-h"></i>
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Collapsible Extra Filters (Cleanly Hidden by Default to keep 1 Line) -->
-                    <div class="collapse pt-2.5 mt-2 border-top {{ (request('party_type') || request('zone') || request('filer_type') || request('status') || request('ntn_number')) ? 'show' : '' }}" id="moreCustomerFilters">
-                        <form method="GET" action="{{ route('customers.index') }}" class="row g-2 align-items-center">
-                            <input type="hidden" name="search" value="{{ request('search') }}">
-                            <input type="hidden" name="province" value="{{ request('province') }}">
-                            <input type="hidden" name="city" value="{{ request('city') }}">
-                            <input type="hidden" name="area" value="{{ request('area') }}">
-                            <input type="hidden" name="customer_type" value="{{ request('customer_type') }}">
-
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small text-muted mb-1 fw-bold">Party Category (Role)</label>
-                                <select name="party_type" class="form-select form-select-sm" style="height: 34px; border-radius: 8px;">
-                                    <option value="">All Categories</option>
-                                    <option value="customer" {{ request('party_type') == 'customer' ? 'selected' : '' }}>Customer Only</option>
-                                    <option value="both" {{ request('party_type') == 'both' ? 'selected' : '' }}>Both (Customer & Vendor)</option>
                                 </select>
                             </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small text-muted mb-1 fw-bold">Region / Zone</label>
-                                <select name="zone" class="form-select form-select-sm" style="height: 34px; border-radius: 8px;">
-                                    <option value="">All Zones</option>
-                                    @if(isset($dropdownLookups['zones']))
-                                        @foreach($dropdownLookups['zones'] as $optVal => $optLabel)
-                                            <option value="{{ $optVal }}" {{ request('zone') == $optVal ? 'selected' : '' }}>
+
+                            <!-- 3. City Filter -->
+                            <div class="cust-col-select">
+                                <select name="city" id="cust_search_city" class="cust-filter-select form-select-sm">
+                                    <option value="">All Cities</option>
+                                    @foreach(app(\App\Services\LocationService::class)->getCities(request('province')) as $c)
+                                        <option value="{{ $c }}" {{ request('city') == $c ? 'selected' : '' }}>{{ $c }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- 4. Area Filter -->
+                            <div class="cust-col-select">
+                                <select name="area" id="cust_search_area" class="cust-filter-select form-select-sm">
+                                    <option value="">All Areas</option>
+                                    @foreach(app(\App\Services\LocationService::class)->getAreas(request('city')) as $a)
+                                        <option value="{{ $a }}" {{ request('area') == $a ? 'selected' : '' }}>{{ $a }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- 5. Customer Type Dropdown -->
+                            <div class="cust-col-select">
+                                <select name="customer_type" class="cust-filter-select form-select-sm">
+                                    <option value="">All Types</option>
+                                    @if(isset($dropdownLookups['customer_types']))
+                                        @foreach($dropdownLookups['customer_types'] as $optVal => $optLabel)
+                                            <option value="{{ $optVal }}" {{ request('customer_type') == $optVal ? 'selected' : '' }}>
                                                 {{ $optLabel }}
                                             </option>
                                         @endforeach
                                     @endif
                                 </select>
                             </div>
-                            <div class="col-md-3 col-sm-6">
-                                <label class="form-label small text-muted mb-1 fw-bold">Tax Status (Filer)</label>
-                                <select name="filer_type" class="form-select form-select-sm" style="height: 34px; border-radius: 8px;">
-                                    <option value="">All Tax Status</option>
-                                    <option value="filer" {{ request('filer_type') == 'filer' ? 'selected' : '' }}>Filer</option>
-                                    <option value="non_filer" {{ request('filer_type') == 'non_filer' ? 'selected' : '' }}>Non-Filer</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-sm-6 d-flex align-items-end pt-3">
-                                <button type="submit" class="btn btn-sm btn-dark px-3 w-100 fw-semibold" style="height: 34px; border-radius: 8px;">
-                                    Apply Extra Filters
+
+                            <!-- 6. Action Buttons -->
+                            <div class="cust-col-actions">
+                                <button type="submit" class="btn btn-primary btn-sm px-3 fw-bold" style="height: 38px; border-radius: 8px; white-space: nowrap;">
+                                    <i class="fas fa-search me-1"></i> Search
+                                </button>
+                                <a href="{{ route('customers.index') }}" class="btn btn-light border btn-sm text-secondary" title="Reset Filters" style="height: 38px; width: 38px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-undo"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="collapse" data-target="#moreCustomerFilters" data-bs-toggle="collapse" data-bs-target="#moreCustomerFilters" title="More Filters" style="height: 38px; width: 38px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-sliders-h"></i>
                                 </button>
                             </div>
-                        </form>
-                    </div>
+                        </div>
+
+                        <!-- Collapsible Extra Filters -->
+                        <div class="collapse pt-3 mt-3 border-top {{ (request('party_type') || request('zone') || request('filer_type') || request('status') || request('ntn_number')) ? 'show' : '' }}" id="moreCustomerFilters">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-3 col-sm-6 mb-2">
+                                    <label class="form-label small text-muted mb-1 fw-bold">Party Category (Role)</label>
+                                    <select name="party_type" class="cust-filter-select">
+                                        <option value="">All Categories</option>
+                                        <option value="customer" {{ request('party_type') == 'customer' ? 'selected' : '' }}>Customer Only</option>
+                                        <option value="both" {{ request('party_type') == 'both' ? 'selected' : '' }}>Both (Customer & Vendor)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-2">
+                                    <label class="form-label small text-muted mb-1 fw-bold">Region / Zone</label>
+                                    <select name="zone" class="cust-filter-select">
+                                        <option value="">All Zones</option>
+                                        @if(isset($dropdownLookups['zones']))
+                                            @foreach($dropdownLookups['zones'] as $optVal => $optLabel)
+                                                <option value="{{ $optVal }}" {{ request('zone') == $optVal ? 'selected' : '' }}>
+                                                    {{ $optLabel }}
+                                                </option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-2">
+                                    <label class="form-label small text-muted mb-1 fw-bold">Tax Status (Filer)</label>
+                                    <select name="filer_type" class="cust-filter-select">
+                                        <option value="">All Tax Status</option>
+                                        <option value="filer" {{ request('filer_type') == 'filer' ? 'selected' : '' }}>Filer</option>
+                                        <option value="non_filer" {{ request('filer_type') == 'non_filer' ? 'selected' : '' }}>Non-Filer</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-2 d-flex align-items-end pt-sm-4">
+                                    <button type="submit" class="btn btn-dark btn-sm px-3 w-100 fw-semibold" style="height: 38px; border-radius: 8px;">
+                                        <i class="fas fa-check me-1"></i> Apply Extra Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Dynamic Customers Table -->
